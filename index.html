@@ -60,6 +60,83 @@
       color: #fef08a;
     }
 
+    .select-trigger {
+      width: 100%;
+      border: 1px solid rgba(51, 65, 85, 0.95);
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(15, 23, 42, 0.62));
+      border-radius: 0.75rem;
+      min-height: 44px;
+      padding: 0.65rem 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #e2e8f0;
+      font-size: 0.95rem;
+      transition: all 0.2s ease;
+    }
+
+    .select-trigger:hover {
+      border-color: rgba(56, 189, 248, 0.55);
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.25);
+    }
+
+    .select-trigger.active {
+      border-color: rgba(212, 160, 23, 0.65);
+      box-shadow: 0 0 0 2px rgba(212, 160, 23, 0.2);
+    }
+
+    .select-menu {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 0.45rem);
+      border-radius: 0.85rem;
+      border: 1px solid rgba(71, 85, 105, 0.8);
+      background: rgba(15, 23, 42, 0.97);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 45px rgba(2, 6, 23, 0.45);
+      z-index: 70;
+      padding: 0.35rem;
+      display: none;
+      max-height: 280px;
+      overflow: auto;
+    }
+
+    .select-menu.show { display: block; }
+
+    .select-option {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem;
+      border: 0;
+      background: transparent;
+      color: #cbd5e1;
+      font-size: 0.95rem;
+      text-align: left;
+      padding: 0.62rem 0.68rem;
+      border-radius: 0.62rem;
+      transition: all 0.2s ease;
+    }
+
+    .select-option:hover {
+      background: rgba(30, 41, 59, 0.9);
+      color: #f8fafc;
+    }
+
+    .select-option.selected {
+      background: rgba(212, 160, 23, 0.15);
+      color: #fde68a;
+    }
+
+    .check-icon {
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .select-option.selected .check-icon { opacity: 1; }
+
     ::-webkit-scrollbar { width: 7px; height: 7px; }
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.4); border-radius: 999px; }
@@ -80,12 +157,24 @@
     <div class="w-full xl:w-auto grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
       <div class="glass-card px-3 py-2">
         <label class="text-xs text-slate-400 block mb-1">พนักงาน (Master Data)</label>
-        <select id="employeeFilter" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2 text-sm"></select>
+        <div class="relative" data-dropdown="employee">
+          <button type="button" id="employeeTrigger" class="select-trigger">
+            <span id="employeeSelectedLabel">พนักงานทั้งหมด</span>
+            <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>
+          </button>
+          <div id="employeeMenu" class="select-menu"></div>
+        </div>
       </div>
 
       <div class="glass-card px-3 py-2">
         <label class="text-xs text-slate-400 block mb-1">หมวดงาน (Job Category)</label>
-        <select id="categoryFilter" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2 text-sm"></select>
+        <div class="relative" data-dropdown="category">
+          <button type="button" id="categoryTrigger" class="select-trigger">
+            <span id="categorySelectedLabel">ทุกหมวดงาน</span>
+            <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>
+          </button>
+          <div id="categoryMenu" class="select-menu"></div>
+        </div>
       </div>
 
       <div class="glass-card px-3 py-2">
@@ -330,29 +419,65 @@
         .sort((a, b) => parseDate(a.deadline) - parseDate(b.deadline));
     }
 
+    function buildDropdownMenu(menuEl, options, currentValue, onSelect) {
+      menuEl.innerHTML = '';
+      options.forEach(({ value, label }) => {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = `select-option ${value === currentValue ? 'selected' : ''}`;
+        button.innerHTML = `
+          <span>${label}</span>
+          <i class="fa-solid fa-check check-icon text-xs"></i>
+        `;
+        button.addEventListener('click', () => {
+          onSelect(value, label);
+          closeAllDropdowns();
+        });
+        menuEl.appendChild(button);
+      });
+    }
+
+    function setDropdownLabel(type, label) {
+      if (type === 'employee') {
+        document.getElementById('employeeSelectedLabel').textContent = label;
+      } else {
+        document.getElementById('categorySelectedLabel').textContent = label;
+      }
+    }
+
+    function closeAllDropdowns() {
+      document.querySelectorAll('.select-menu').forEach(menu => menu.classList.remove('show'));
+      document.querySelectorAll('.select-trigger').forEach(trigger => trigger.classList.remove('active'));
+    }
+
     function renderFilters() {
-      const employeeSelect = document.getElementById('employeeFilter');
-      const categorySelect = document.getElementById('categoryFilter');
+      const employeeOptions = [
+        { value: 'all', label: 'พนักงานทั้งหมด' },
+        ...excelData.masterData.employees.map(emp => ({ value: emp, label: emp }))
+      ];
+      const categoryOptions = [
+        { value: 'all', label: 'ทุกหมวดงาน' },
+        ...excelData.masterData.categories.map(cat => ({ value: cat, label: cat }))
+      ];
 
-      employeeSelect.innerHTML = '<option value="all">พนักงานทั้งหมด</option>';
-      categorySelect.innerHTML = '<option value="all">ทุกหมวดงาน</option>';
+      const employeeMenu = document.getElementById('employeeMenu');
+      const categoryMenu = document.getElementById('categoryMenu');
 
-      excelData.masterData.employees.forEach(emp => {
-        const opt = document.createElement('option');
-        opt.value = emp;
-        opt.textContent = emp;
-        employeeSelect.appendChild(opt);
+      buildDropdownMenu(employeeMenu, employeeOptions, state.selectedOwner, (value, label) => {
+        state.selectedOwner = value;
+        setDropdownLabel('employee', label);
+        renderAll();
       });
 
-      excelData.masterData.categories.forEach(cat => {
-        const opt = document.createElement('option');
-        opt.value = cat;
-        opt.textContent = cat;
-        categorySelect.appendChild(opt);
+      buildDropdownMenu(categoryMenu, categoryOptions, state.selectedCategory, (value, label) => {
+        state.selectedCategory = value;
+        setDropdownLabel('category', label);
+        renderAdhoc();
+        renderMonthly();
       });
 
-      employeeSelect.value = state.selectedOwner;
-      categorySelect.value = state.selectedCategory;
+      setDropdownLabel('employee', employeeOptions.find(item => item.value === state.selectedOwner)?.label || 'พนักงานทั้งหมด');
+      setDropdownLabel('category', categoryOptions.find(item => item.value === state.selectedCategory)?.label || 'ทุกหมวดงาน');
 
       document.getElementById('currentDate').textContent = state.today.toLocaleDateString('th-TH', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
@@ -592,15 +717,33 @@
     }
 
     function bindEvents() {
-      document.getElementById('employeeFilter').addEventListener('change', (e) => {
-        state.selectedOwner = e.target.value;
-        renderAll();
+      const employeeTrigger = document.getElementById('employeeTrigger');
+      const categoryTrigger = document.getElementById('categoryTrigger');
+      const employeeMenu = document.getElementById('employeeMenu');
+      const categoryMenu = document.getElementById('categoryMenu');
+
+      employeeTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const willShow = !employeeMenu.classList.contains('show');
+        closeAllDropdowns();
+        if (willShow) {
+          employeeMenu.classList.add('show');
+          employeeTrigger.classList.add('active');
+        }
       });
 
-      document.getElementById('categoryFilter').addEventListener('change', (e) => {
-        state.selectedCategory = e.target.value;
-        renderAdhoc();
-        renderMonthly();
+      categoryTrigger.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const willShow = !categoryMenu.classList.contains('show');
+        closeAllDropdowns();
+        if (willShow) {
+          categoryMenu.classList.add('show');
+          categoryTrigger.classList.add('active');
+        }
+      });
+
+      document.addEventListener('click', () => {
+        closeAllDropdowns();
       });
 
       document.getElementById('dailyBtn').addEventListener('click', () => switchView('daily'));
