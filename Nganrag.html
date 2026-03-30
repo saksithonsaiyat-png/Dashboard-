@@ -1,0 +1,441 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Executive Task Dashboard</title>
+    <!-- เรียกใช้ Tailwind CSS สำหรับจัด UI แบบรวดเร็วและสวยงาม -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- เรียกใช้ FontAwesome สำหรับไอคอน -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- เรียกใช้ Chart.js สำหรับทำกราฟรายเดือน -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <script>
+        // ตั้งค่า Theme สีของ Tailwind สไตล์ Modern Luxury
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        darkBg: '#0f172a',
+                        cardBg: 'rgba(30, 41, 59, 0.7)',
+                        accentGold: '#eab308',
+                        dangerRed: '#ef4444',
+                        successGreen: '#10b981'
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* สไตล์ Glassmorphism ทำให้กล่องดูโปร่งแสงและหรูหรา */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+        }
+        /* Custom Scrollbar ให้ดูสะอาดตาบน iPad */
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: rgba(255, 255, 255, 0.2); border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: rgba(255, 255, 255, 0.4); }
+    </style>
+</head>
+<body class="bg-darkBg text-slate-200 font-sans min-h-screen p-4 md:p-6 lg:p-8">
+
+    <!-- Header & Master Data Filters -->
+    <header class="flex flex-col md:flex-row justify-between items-center mb-8 gap-4">
+        <div>
+            <h1 class="text-2xl md:text-3xl font-bold text-white tracking-wide">
+                <i class="fa-solid fa-chart-pie text-accentGold mr-2"></i> Executive Dashboard
+            </h1>
+            <p class="text-slate-400 text-sm mt-1">อัปเดตสถานะงานรายวัน & งาน Adhoc อัตโนมัติ</p>
+        </div>
+        
+        <!-- Master Data Selection (จำลองการดึงจาก Excel) -->
+        <div class="flex gap-3 w-full md:w-auto">
+            <select id="employeeFilter" class="bg-slate-800 border border-slate-600 text-white text-sm rounded-lg focus:ring-accentGold focus:border-accentGold block w-full p-2.5">
+                <option value="all">พนักงานทั้งหมด (All Owners)</option>
+                <!-- จะถูกเติมด้วย JS จาก Master Data -->
+            </select>
+            <div class="bg-slate-800 border border-slate-600 rounded-lg p-2.5 flex items-center justify-center min-w-[120px]">
+                <span class="text-sm font-medium" id="currentDate"></span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Top Summary Widgets -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <!-- Widget 1: Routine Progress -->
+        <div class="glass-card p-6 flex items-center justify-between">
+            <div>
+                <p class="text-slate-400 text-sm font-medium mb-1">งาน Routine วันนี้</p>
+                <h3 class="text-3xl font-bold text-white" id="routinePercent">0%</h3>
+                <p class="text-xs text-slate-400 mt-2"><span id="routineCount">0/0</span> รายการเสร็จสิ้น</p>
+            </div>
+            <div class="relative w-16 h-16">
+                <svg class="w-full h-full" viewBox="0 0 36 36">
+                    <path class="text-slate-700" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                    <path id="routineCircle" class="text-accentGold transition-all duration-1000 ease-out" stroke-dasharray="0, 100" stroke-width="3" stroke="currentColor" fill="none" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"/>
+                </svg>
+            </div>
+        </div>
+
+        <!-- Widget 2: Adhoc Pending -->
+        <div class="glass-card p-6 flex items-center justify-between">
+            <div>
+                <p class="text-slate-400 text-sm font-medium mb-1">งาน Adhoc ที่กำลังทำ</p>
+                <h3 class="text-3xl font-bold text-white" id="adhocPendingCount">0</h3>
+                <p class="text-xs text-yellow-400 mt-2"><i class="fa-solid fa-clock mr-1"></i> รอดำเนินการ</p>
+            </div>
+            <div class="w-12 h-12 rounded-full bg-yellow-500/20 flex items-center justify-center text-yellow-500 text-xl">
+                <i class="fa-solid fa-spinner fa-spin-pulse"></i>
+            </div>
+        </div>
+
+        <!-- Widget 3: Overdue Warning -->
+        <div id="overdueWidget" class="glass-card p-6 flex items-center justify-between border-l-4 border-l-dangerRed">
+            <div>
+                <p class="text-slate-400 text-sm font-medium mb-1">งานเกินกำหนด (Overdue)</p>
+                <h3 class="text-3xl font-bold text-dangerRed" id="adhocOverdueCount">0</h3>
+                <p class="text-xs text-dangerRed mt-2"><i class="fa-solid fa-triangle-exclamation mr-1"></i> ต้องติดตามด่วน!</p>
+            </div>
+            <div class="w-12 h-12 rounded-full bg-red-500/20 flex items-center justify-center text-dangerRed text-xl">
+                <i class="fa-solid fa-bell fa-shake"></i>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+        
+        <!-- Left Column: Routine Tasks (Daily View) -->
+        <div class="glass-card p-6 lg:col-span-1 flex flex-col h-[500px]">
+            <h2 class="text-lg font-semibold text-white mb-4 border-b border-slate-700 pb-2">
+                <i class="fa-solid fa-list-check text-accentGold mr-2"></i> Routine Tasks (งานประจำวัน)
+            </h2>
+            
+            <!-- Progress Bar แบบแท่ง -->
+            <div class="w-full bg-slate-700 rounded-full h-2 mb-4">
+                <div id="routineProgressBar" class="bg-accentGold h-2 rounded-full transition-all duration-500" style="width: 0%"></div>
+            </div>
+
+            <div class="overflow-y-auto flex-1 pr-2" id="routineContainer">
+                <!-- รายการ Routine จะถูก Render ที่นี่ด้วย JS -->
+            </div>
+        </div>
+
+        <!-- Right Column: Adhoc Tasks (Warning System) -->
+        <div class="glass-card p-6 lg:col-span-2 flex flex-col h-[500px]">
+            <div class="flex justify-between items-center mb-4 border-b border-slate-700 pb-2">
+                <h2 class="text-lg font-semibold text-white">
+                    <i class="fa-solid fa-bolt text-accentGold mr-2"></i> Adhoc Tasks (งานจร/งานสั่ง)
+                </h2>
+                <span class="text-xs bg-slate-700 px-2 py-1 rounded text-slate-300">เรียงตาม Deadline</span>
+            </div>
+            
+            <div class="overflow-x-auto overflow-y-auto flex-1">
+                <table class="w-full text-sm text-left text-slate-300">
+                    <thead class="text-xs text-slate-400 uppercase bg-slate-800/50 sticky top-0">
+                        <tr>
+                            <th scope="col" class="px-4 py-3 rounded-tl-lg">ชื่องาน</th>
+                            <th scope="col" class="px-4 py-3">ผู้รับผิดชอบ</th>
+                            <th scope="col" class="px-4 py-3">วันที่รับงาน</th>
+                            <th scope="col" class="px-4 py-3">Deadline</th>
+                            <th scope="col" class="px-4 py-3 rounded-tr-lg">สถานะ</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adhocContainer">
+                        <!-- ข้อมูล Adhoc จะถูก Render ที่นี่ด้วย JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Section: Monthly Overview Chart -->
+    <div class="glass-card p-6 w-full">
+        <h2 class="text-lg font-semibold text-white mb-4 border-b border-slate-700 pb-2">
+            <i class="fa-solid fa-chart-line text-accentGold mr-2"></i> Monthly Performance (ภาพรวมรายเดือน)
+        </h2>
+        <div class="relative h-64 w-full">
+            <canvas id="monthlyChart"></canvas>
+        </div>
+    </div>
+
+    <!-- JavaScript สำหรับจัดการข้อมูลและ Logic -->
+    <script>
+        // ----------------------------------------------------
+        // 1. จำลองข้อมูล (Mock Data) เสมือนดึงมาจาก Excel
+        // ----------------------------------------------------
+        
+        // Master Data
+        const masterData = {
+            employees: ['นาย A', 'นางสาว B', 'นาย C', 'นางสาว D']
+        };
+
+        // ข้อมูล Routine
+        let routineTasks = [
+            { id: 1, title: 'เช็กอีเมลลูกค้าและตอบกลับ', isDone: true },
+            { id: 2, title: 'อัปเดตยอดขายลงระบบ ERP', isDone: true },
+            { id: 3, title: 'ประชุมทีมช่วงเช้า (Daily Sync)', isDone: true },
+            { id: 4, title: 'เคลียร์เอกสารวางบิล', isDone: false },
+            { id: 5, title: 'ตรวจสอบ Stock สินค้าคงเหลือ', isDone: false },
+            { id: 6, title: 'สรุป Report ประจำวันส่งหัวหน้า', isDone: false },
+            { id: 7, title: 'Backup ข้อมูลระบบ', isDone: false }
+        ];
+
+        // ข้อมูล Adhoc
+        // จำลองวันที่ปัจจุบันเพื่อเทียบ Deadline
+        const today = new Date();
+        const formatDate = (daysOffset) => {
+            let d = new Date(today);
+            d.setDate(today.getDate() + daysOffset);
+            return d.toISOString().split('T')[0]; // Format YYYY-MM-DD
+        };
+
+        const adhocTasks = [
+            { id: 1, title: 'จัดทำสไลด์นำเสนอลูกค้า VIP', owner: 'นาย A', receiveDate: formatDate(-5), deadline: formatDate(-1), status: 'Overdue' },
+            { id: 2, title: 'ประสานงานซ่อมแอร์ห้องประชุม', owner: 'นางสาว B', receiveDate: formatDate(-2), deadline: formatDate(0), status: 'Pending' }, // Deadline วันนี้
+            { id: 3, title: 'เตรียมของขวัญปีใหม่บริษัท', owner: 'นาย C', receiveDate: formatDate(-10), deadline: formatDate(5), status: 'Pending' },
+            { id: 4, title: 'ตรวจสอบสัญญาเช่าตึกใหม่', owner: 'นาย A', receiveDate: formatDate(-3), deadline: formatDate(2), status: 'Pending' },
+            { id: 5, title: 'หา Vender ผลิตเสื้อโปโล', owner: 'นางสาว D', receiveDate: formatDate(-7), deadline: formatDate(-2), status: 'Success' },
+            { id: 6, title: 'สรุปงบประมาณไตรมาส 1', owner: 'นาย C', receiveDate: formatDate(-15), deadline: formatDate(-5), status: 'Overdue' },
+        ];
+
+        // ----------------------------------------------------
+        // 2. ฟังก์ชันหลักในการแสดงผล (Render UI)
+        // ----------------------------------------------------
+
+        // เซ็ตวันที่ปัจจุบันบน Header
+        document.getElementById('currentDate').innerText = today.toLocaleDateString('th-TH', { 
+            weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' 
+        });
+
+        // นำ Master Data ใส่ใน Dropdown
+        const empSelect = document.getElementById('employeeFilter');
+        masterData.employees.forEach(emp => {
+            let option = document.createElement('option');
+            option.value = emp;
+            option.innerText = emp;
+            empSelect.appendChild(option);
+        });
+
+        // ฟังก์ชันอัปเดต Routine (UI & Logic)
+        function renderRoutine() {
+            const container = document.getElementById('routineContainer');
+            container.innerHTML = ''; // เคลียร์ของเก่า
+
+            let completedCount = 0;
+
+            routineTasks.forEach(task => {
+                if (task.isDone) completedCount++;
+
+                // สร้าง HTML สำหรับแต่ละรายการ
+                const item = document.createElement('div');
+                item.className = 'flex items-center p-3 mb-2 bg-slate-800/50 rounded-lg hover:bg-slate-700/50 transition-colors cursor-pointer border border-transparent';
+                if(task.isDone) item.classList.add('opacity-60');
+
+                item.innerHTML = `
+                    <div class="flex-shrink-0 mr-3">
+                        <div class="w-6 h-6 rounded-full border-2 flex items-center justify-center ${task.isDone ? 'bg-successGreen border-successGreen text-white' : 'border-slate-500 text-transparent'}">
+                            <i class="fa-solid fa-check text-xs"></i>
+                        </div>
+                    </div>
+                    <div class="flex-1 text-sm ${task.isDone ? 'line-through text-slate-500' : 'text-slate-200'}">
+                        ${task.title}
+                    </div>
+                `;
+
+                // ให้คลิกเพื่อจำลองการติ๊ก "Y" ใน Excel
+                item.addEventListener('click', () => {
+                    task.isDone = !task.isDone;
+                    renderRoutine(); // Render ใหม่เมื่อสถานะเปลี่ยน
+                });
+
+                container.appendChild(item);
+            });
+
+            // คำนวณเปอร์เซ็นต์
+            const percent = Math.round((completedCount / routineTasks.length) * 100);
+            
+            // อัปเดตตัวเลขหน้าปัด
+            document.getElementById('routinePercent').innerText = `${percent}%`;
+            document.getElementById('routineCount').innerText = `${completedCount}/${routineTasks.length}`;
+            
+            // อัปเดต Progress Bar แท่ง
+            document.getElementById('routineProgressBar').style.width = `${percent}%`;
+            if (percent === 100) {
+                document.getElementById('routineProgressBar').classList.replace('bg-accentGold', 'bg-successGreen');
+            } else {
+                document.getElementById('routineProgressBar').classList.replace('bg-successGreen', 'bg-accentGold');
+            }
+
+            // อัปเดตวงกลม SVG
+            document.getElementById('routineCircle').setAttribute('stroke-dasharray', `${percent}, 100`);
+            if (percent === 100) {
+                document.getElementById('routineCircle').classList.replace('text-accentGold', 'text-successGreen');
+            } else {
+                document.getElementById('routineCircle').classList.replace('text-successGreen', 'text-accentGold');
+            }
+        }
+
+        // ฟังก์ชันจัดรูปแบบสถานะสำหรับ Adhoc พร้อมระบบ Warning
+        function getStatusBadge(status, deadlineStr) {
+            const dlDate = new Date(deadlineStr);
+            const todayDate = new Date();
+            todayDate.setHours(0,0,0,0);
+            
+            // คำนวณวันคงเหลือ
+            const diffTime = dlDate - todayDate;
+            const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+
+            if (status === 'Success') {
+                return `<span class="px-2.5 py-1 bg-green-500/20 text-green-400 rounded-md text-xs font-medium border border-green-500/30">สำเร็จ</span>`;
+            } else if (status === 'Overdue' || diffDays < 0) {
+                // Warning: สีแดง กระพริบ
+                return `<span class="px-2.5 py-1 bg-red-500/20 text-red-400 rounded-md text-xs font-medium border border-red-500 animate-pulse"><i class="fa-solid fa-triangle-exclamation mr-1"></i>เกินกำหนด</span>`;
+            } else if (diffDays === 0) {
+                 // Warning: สีส้มเตือน วันนี้
+                 return `<span class="px-2.5 py-1 bg-orange-500/20 text-orange-400 rounded-md text-xs font-medium border border-orange-500">กำหนดส่งวันนี้!</span>`;
+            } else {
+                return `<span class="px-2.5 py-1 bg-yellow-500/20 text-yellow-400 rounded-md text-xs font-medium border border-yellow-500/30">รอดำเนินการ (${diffDays} วัน)</span>`;
+            }
+        }
+
+        // ฟังก์ชันอัปเดต Adhoc
+        function renderAdhoc(filterOwner = 'all') {
+            const container = document.getElementById('adhocContainer');
+            container.innerHTML = '';
+
+            let pendingCount = 0;
+            let overdueCount = 0;
+
+            // กรองข้อมูลตาม Master Data (ถ้ามีเลือก)
+            const filteredTasks = filterOwner === 'all' ? adhocTasks : adhocTasks.filter(t => t.owner === filterOwner);
+
+            // เรียงลำดับให้ Overdue หรือใกล้ Deadline ขึ้นก่อน
+            filteredTasks.sort((a, b) => new Date(a.deadline) - new Date(b.deadline));
+
+            filteredTasks.forEach(task => {
+                const dlDate = new Date(task.deadline);
+                const isOverdue = task.status === 'Overdue' || (task.status !== 'Success' && dlDate < today);
+                
+                if(task.status !== 'Success' && !isOverdue) pendingCount++;
+                if(isOverdue && task.status !== 'Success') overdueCount++;
+
+                // สร้างแถวตาราง
+                const tr = document.createElement('tr');
+                tr.className = 'border-b border-slate-700/50 hover:bg-slate-800/50 transition-colors';
+                
+                // Highlight แถวที่ Overdue ให้เห็นชัดๆ (ความต้องการลูกค้า)
+                if(isOverdue && task.status !== 'Success') {
+                    tr.classList.add('bg-red-900/10');
+                }
+
+                tr.innerHTML = `
+                    <td class="px-4 py-3 font-medium ${isOverdue ? 'text-red-300' : 'text-white'}">${task.title}</td>
+                    <td class="px-4 py-3">
+                        <div class="flex items-center">
+                            <div class="w-6 h-6 rounded-full bg-slate-600 flex items-center justify-center text-xs mr-2">${task.owner.charAt(task.owner.length-1)}</div>
+                            ${task.owner}
+                        </div>
+                    </td>
+                    <td class="px-4 py-3 text-slate-400">${new Date(task.receiveDate).toLocaleDateString('th-TH')}</td>
+                    <td class="px-4 py-3 ${isOverdue ? 'text-red-400 font-bold' : ''}">${new Date(task.deadline).toLocaleDateString('th-TH')}</td>
+                    <td class="px-4 py-3">${getStatusBadge(task.status, task.deadline)}</td>
+                `;
+                container.appendChild(tr);
+            });
+
+            // อัปเดตตัวเลขสรุปบน Widget
+            document.getElementById('adhocPendingCount').innerText = pendingCount;
+            const overdueEl = document.getElementById('adhocOverdueCount');
+            const overdueWidget = document.getElementById('overdueWidget');
+            
+            overdueEl.innerText = overdueCount;
+            
+            // Effect แจ้งเตือนถ้ายอด Overdue > 0
+            if(overdueCount > 0) {
+                overdueWidget.classList.add('border-l-dangerRed', 'bg-red-900/20');
+                overdueWidget.classList.remove('border-l-transparent');
+            } else {
+                overdueWidget.classList.remove('border-l-dangerRed', 'bg-red-900/20');
+                overdueWidget.classList.add('border-l-transparent');
+            }
+        }
+
+        // ----------------------------------------------------
+        // 3. กราฟรายเดือน (Monthly Chart ด้วย Chart.js)
+        // ----------------------------------------------------
+        function initChart() {
+            const ctx = document.getElementById('monthlyChart').getContext('2d');
+            
+            // ข้อมูลจำลองสำหรับกราฟ
+            const labels = ['สัปดาห์ 1', 'สัปดาห์ 2', 'สัปดาห์ 3', 'สัปดาห์ 4'];
+            const dataSuccess = [12, 19, 15, 22]; // งานที่เสร็จ
+            const dataOverdue = [2, 1, 3, 0];     // งานที่เลยกำหนด
+
+            new Chart(ctx, {
+                type: 'bar',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'งานที่สำเร็จ (Success)',
+                            data: dataSuccess,
+                            backgroundColor: 'rgba(16, 185, 129, 0.8)', // successGreen
+                            borderRadius: 4,
+                        },
+                        {
+                            label: 'งานที่เลยกำหนด (Overdue)',
+                            data: dataOverdue,
+                            backgroundColor: 'rgba(239, 68, 68, 0.8)', // dangerRed
+                            borderRadius: 4,
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            labels: { color: '#cbd5e1' } // slate-300
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: 'rgba(255, 255, 255, 0.1)' },
+                            ticks: { color: '#94a3b8' } // slate-400
+                        },
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: '#94a3b8' }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ----------------------------------------------------
+        // 4. Initial Load & Event Listeners
+        // ----------------------------------------------------
+        
+        // เริ่มต้น Render ข้อมูล
+        renderRoutine();
+        renderAdhoc();
+        initChart();
+
+        // เมื่อหัวหน้างานเปลี่ยน Filter รายชื่อพนักงาน (Master Data)
+        document.getElementById('employeeFilter').addEventListener('change', (e) => {
+            renderAdhoc(e.target.value);
+            // ในระบบจริง จะฟิลเตอร์ Routine และอัปเดตกราฟด้วย
+        });
+
+    </script>
+</body>
+</html>
+
