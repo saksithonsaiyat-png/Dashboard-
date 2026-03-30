@@ -249,7 +249,7 @@
       <article class="glass-card p-5 lg:col-span-1 h-[560px] flex flex-col">
         <div class="flex justify-between items-center mb-3 border-b border-slate-700 pb-2">
           <h2 class="font-semibold text-white"><i class="fa-solid fa-list-check text-accentGold mr-2"></i>Routine (รายวัน)</h2>
-          <button id="resetDailyBtn" class="text-xs text-accentBlue hover:text-white">รีเซ็ตวันนี้</button>
+          <button id="resetDailyBtn" class="text-xs text-accentBlue hover:text-white">รีเ็ตวันนี้</button>
         </div>
         <p class="text-xs text-slate-400 mb-3">ระบบรองรับการเพิ่ม Task ใหม่อัตโนมัติจากข้อมูล Excel เช่น Task 17, 18...</p>
         <div id="routineList" class="overflow-auto pr-1 flex-1"></div>
@@ -476,6 +476,17 @@
       });
       document.querySelectorAll('.select-trigger').forEach(trigger => trigger.classList.remove('active'));
       document.querySelectorAll('.dropdown-wrap').forEach(wrap => wrap.classList.remove('open'));
+    }
+
+    function initMenuPortal() {
+      const body = document.body;
+      ['employeeMenu', 'categoryMenu'].forEach((menuId) => {
+        const menu = document.getElementById(menuId);
+        if (menu && menu.dataset.portaled !== 'true') {
+          body.appendChild(menu);
+          menu.dataset.portaled = 'true';
+        }
+      });
     }
 
     function openDropdown(menu, trigger) {
@@ -764,6 +775,7 @@
       const categoryTrigger = document.getElementById('categoryTrigger');
       const employeeMenu = document.getElementById('employeeMenu');
       const categoryMenu = document.getElementById('categoryMenu');
+      initMenuPortal();
 
       employeeTrigger.addEventListener('click', (e) => {
         e.stopPropagation();
