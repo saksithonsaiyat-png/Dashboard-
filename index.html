@@ -193,7 +193,7 @@
       <p class="text-slate-400 text-sm mt-1">Daily & Monthly Monitoring | เชื่อมข้อมูลจาก Excel Online (Office 365)</p>
     </div>
 
-    <div class="w-full xl:w-auto grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
+    <div class="w-full xl:w-auto grid sm:grid-cols-2 xl:grid-cols-5 gap-3">
       <div class="glass-card px-3 py-2">
         <label class="text-xs text-slate-400 block mb-1">พนักงาน (Master Data)</label>
         <div class="dropdown-wrap" data-dropdown="employee">
@@ -225,6 +225,15 @@
       </div>
 
       <div class="glass-card px-3 py-2">
+        <label class="text-xs text-slate-400 block mb-1">โหมดผู้ใช้งาน</label>
+        <select id="roleSelect" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-2 py-1.5 text-sm mb-2">
+          <option value="executive">Executive View</option>
+          <option value="staff">Staff View</option>
+        </select>
+        <select id="selfFilter" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-2 py-1.5 text-sm"></select>
+      </div>
+
+      <div class="glass-card px-3 py-2">
         <p class="text-xs text-slate-400 mb-1">ย้อนหลัง / วันที่ใช้งาน</p>
         <div class="flex items-center gap-2 mb-2">
           <button id="prevDateBtn" type="button" class="chip !py-1 !px-2"><i class="fa-solid fa-chevron-left"></i></button>
@@ -235,6 +244,23 @@
       </div>
     </div>
   </header>
+
+  <section class="glass-card p-4 mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+      <h3 class="text-sm font-semibold text-white"><i class="fa-solid fa-cloud-arrow-up text-accentGold mr-2"></i>Data Sync Options</h3>
+      <span class="text-[11px] text-slate-300 bg-slate-800/70 px-2 py-1 rounded-md">รองรับ Google Sheets API หรือ Manual Import</span>
+    </div>
+    <div class="grid md:grid-cols-2 gap-3 text-xs">
+      <div class="bg-slate-900/45 border border-slate-700 rounded-lg p-3">
+        <p class="text-slate-200 font-medium mb-1">A) Google Sheets API (Recommended)</p>
+        <p class="text-slate-400">Sync อัตโนมัติใกล้ real-time สำหรับหัวหน้าและลูกน้องใช้งานร่วมกัน</p>
+      </div>
+      <div class="bg-slate-900/45 border border-slate-700 rounded-lg p-3">
+        <p class="text-slate-200 font-medium mb-1">B) Manual Import (Excel/CSV)</p>
+        <p class="text-slate-400">อัปโหลดไฟล์เป็นรอบรายวัน/รายสัปดาห์เพื่อรีเฟรช Dashboard</p>
+      </div>
+    </div>
+  </section>
 
   <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
     <div class="glass-card p-4 shadow-glow">
@@ -318,10 +344,6 @@
   </main>
 
   <script>
-    // ===============================
-    // Office 365 Data Adapter (Mock)
-    // ===============================
-    // ในระบบจริงให้แทนที่ object นี้ด้วยการดึงจาก Microsoft Graph / Excel API
     const excelData = {
       masterData: {
         employees: ['นาย A', 'นางสาว B', 'นาย C', 'นางสาว D'],
@@ -342,56 +364,11 @@
         { owner: 'นางสาว D', date: '2026-03-30', checks: { 'Task 1': 'N', 'Task 2': 'Y', 'Task 3': 'N', 'Task 4': 'Y' } }
       ],
       adhocRows: [
-        {
-          title: 'ติดตาม PO ลูกค้า Premium',
-          description: 'ยืนยันกำหนดรับสินค้า',
-          owner: 'นาย A',
-          category: 'Sales',
-          receiveDate: '2026-03-27',
-          deadline: '2026-03-31',
-          actualDeliveryDate: '',
-          status: 'Pending'
-        },
-        {
-          title: 'สรุปงบทดลองประจำเดือน',
-          description: 'ส่งฝ่ายบริหาร',
-          owner: 'นาย C',
-          category: 'Finance',
-          receiveDate: '2026-03-20',
-          deadline: '2026-03-28',
-          actualDeliveryDate: '',
-          status: 'Pending'
-        },
-        {
-          title: 'อัปเดตคู่มือพนักงานใหม่',
-          description: 'ปรับข้อกำหนด WFH',
-          owner: 'นางสาว B',
-          category: 'Operations',
-          receiveDate: '2026-03-15',
-          deadline: '2026-03-29',
-          actualDeliveryDate: '2026-03-29',
-          status: 'Success'
-        },
-        {
-          title: 'ประสานงานระบบกล้องชั้น 2',
-          description: 'ตรวจสอบผู้รับเหมา',
-          owner: 'นางสาว D',
-          category: 'Support',
-          receiveDate: '2026-03-29',
-          deadline: '2026-04-01',
-          actualDeliveryDate: '',
-          status: 'Pending'
-        },
-        {
-          title: 'รีเช็ค KPI สายจัดส่ง',
-          description: 'เทียบ SLA รายสัปดาห์',
-          owner: 'นาย A',
-          category: 'Operations',
-          receiveDate: '2026-03-10',
-          deadline: '2026-03-26',
-          actualDeliveryDate: '',
-          status: 'Pending'
-        }
+        { title: 'ติดตาม PO ลูกค้า Premium', description: 'ยืนยันกำหนดรับสินค้า', owner: 'นาย A, นาย C', category: 'Sales', receiveDate: '2026-03-27', deadline: '2026-03-31', actualDeliveryDate: '', status: 'Pending' },
+        { title: 'สรุปงบทดลองประจำเดือน', description: 'ส่งฝ่ายบริหาร', owner: 'นาย C, นางสาว B', category: 'Finance', receiveDate: '2026-03-20', deadline: '2026-03-28', actualDeliveryDate: '', status: 'Pending' },
+        { title: 'อัปเดตคู่มือพนักงานใหม่', description: 'ปรับข้อกำหนด WFH', owner: 'นางสาว B, นาย A', category: 'Operations', receiveDate: '2026-03-15', deadline: '2026-03-29', actualDeliveryDate: '2026-03-29', status: 'Success' },
+        { title: 'ประสานงานระบบกล้องชั้น 2', description: 'ตรวจสอบผู้รับเหมา', owner: 'นางสาว D, นาย A', category: 'Support', receiveDate: '2026-03-29', deadline: '2026-04-01', actualDeliveryDate: '', status: 'Pending' },
+        { title: 'รีเช็ค KPI สายจัดส่ง', description: 'เทียบ SLA รายสัปดาห์', owner: 'นาย A, นางสาว D', category: 'Operations', receiveDate: '2026-03-10', deadline: '2026-03-26', actualDeliveryDate: '', status: 'Pending' }
       ]
     };
 
@@ -400,70 +377,38 @@
       selectedCategory: 'all',
       currentView: 'daily',
       selectedDate: new Date('2026-03-30'),
+      userRole: 'executive',
+      currentUser: 'นาย A',
       monthlyChart: null
     };
 
-    const companyProfile = {
-      name: 'Your Company Name',
-      logoUrl: ''
-    };
+    const companyProfile = { name: 'Your Company Name', logoUrl: '' };
 
-    const toYMD = (d) => {
-      const date = new Date(d);
-      const y = date.getFullYear();
-      const m = String(date.getMonth() + 1).padStart(2, '0');
-      const day = String(date.getDate()).padStart(2, '0');
-      return `${y}-${m}-${day}`;
-    };
-
-    const parseDate = (dateStr) => {
-      const [y, m, d] = dateStr.split('-').map(Number);
-      return new Date(y, m - 1, d);
-    };
-
+    const toYMD = (d) => { const date = new Date(d); return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,'0')}-${String(date.getDate()).padStart(2,'0')}`; };
+    const parseDate = (dateStr) => { const [y,m,d] = dateStr.split('-').map(Number); return new Date(y,m-1,d); };
     const selectedYMD = () => toYMD(state.selectedDate);
-
-    const formatThaiDate = (dateStr) => parseDate(dateStr).toLocaleDateString('th-TH', {
-      year: 'numeric', month: 'short', day: 'numeric'
-    });
+    const formatThaiDate = (dateStr) => parseDate(dateStr).toLocaleDateString('th-TH', { year:'numeric', month:'short', day:'numeric' });
+    const parseOwners = (ownerText) => ownerText.split(',').map(name => name.trim()).filter(Boolean);
 
     function getRoutineTasksForDate(owner, dateYMD) {
       const rows = excelData.routineRows.filter(row => row.date === dateYMD && (owner === 'all' || row.owner === owner));
       const taskMap = new Map();
-
       rows.forEach(row => {
         Object.entries(row.checks).forEach(([taskName, mark]) => {
-          if (!taskMap.has(taskName)) {
-            taskMap.set(taskName, { taskName, done: 0, total: 0 });
-          }
-          const item = taskMap.get(taskName);
-          item.total += 1;
-          if (mark === 'Y') item.done += 1;
+          if (!taskMap.has(taskName)) taskMap.set(taskName, { taskName, done: 0, total: 0 });
+          const item = taskMap.get(taskName); item.total += 1; if (mark === 'Y') item.done += 1;
         });
       });
-
-      return [...taskMap.values()].sort((a, b) => {
-        const numberA = Number((a.taskName.match(/\d+/) || ['999'])[0]);
-        const numberB = Number((b.taskName.match(/\d+/) || ['999'])[0]);
-        return numberA - numberB;
-      });
+      return [...taskMap.values()].sort((a,b) => Number((a.taskName.match(/\d+/)||['999'])[0]) - Number((b.taskName.match(/\d+/)||['999'])[0]));
     }
 
     function computeTaskStatus(task) {
       const today = parseDate(selectedYMD());
       const deadline = parseDate(task.deadline);
-      const msPerDay = 1000 * 60 * 60 * 24;
-      const diffDays = Math.ceil((deadline - today) / msPerDay);
-
-      if (task.status === 'Success') {
-        return { level: 'success', label: 'Success', diffDays };
-      }
-      if (diffDays < 0) {
-        return { level: 'overdue', label: 'Overdue', diffDays };
-      }
-      if (diffDays <= 2) {
-        return { level: 'warning', label: `Warning (${diffDays} วัน)`, diffDays };
-      }
+      const diffDays = Math.ceil((deadline - today) / (1000*60*60*24));
+      if (task.status === 'Success') return { level: 'success', label: 'Success', diffDays };
+      if (diffDays < 0) return { level: 'overdue', label: 'Overdue', diffDays };
+      if (diffDays <= 2) return { level: 'warning', label: `Warning (${diffDays} วัน)`, diffDays };
       return { level: 'pending', label: 'Pending', diffDays };
     }
 
@@ -471,9 +416,9 @@
       const asOfDate = parseDate(selectedYMD());
       return excelData.adhocRows
         .filter(task => parseDate(task.receiveDate) <= asOfDate)
-        .filter(task => state.selectedOwner === 'all' || task.owner === state.selectedOwner)
+        .filter(task => state.selectedOwner === 'all' || parseOwners(task.owner).includes(state.selectedOwner))
         .filter(task => state.selectedCategory === 'all' || task.category === state.selectedCategory)
-        .sort((a, b) => parseDate(a.deadline) - parseDate(b.deadline));
+        .sort((a,b) => parseDate(a.deadline) - parseDate(b.deadline));
     }
 
     function buildDropdownMenu(menuEl, options, currentValue, onSelect) {
@@ -482,33 +427,21 @@
         const button = document.createElement('button');
         button.type = 'button';
         button.className = `select-option ${value === currentValue ? 'selected' : ''}`;
-        button.innerHTML = `
-          <span>${label}</span>
-          <i class="fa-solid fa-check check-icon text-xs"></i>
-        `;
-        button.addEventListener('click', () => {
-          onSelect(value, label);
-          closeAllDropdowns();
-        });
+        button.innerHTML = `<span>${label}</span><i class="fa-solid fa-check check-icon text-xs"></i>`;
+        button.addEventListener('click', () => { onSelect(value, label); closeAllDropdowns(); });
         menuEl.appendChild(button);
       });
     }
 
     function setDropdownLabel(type, label) {
-      if (type === 'employee') {
-        document.getElementById('employeeSelectedLabel').textContent = label;
-      } else {
-        document.getElementById('categorySelectedLabel').textContent = label;
-      }
+      if (type === 'employee') document.getElementById('employeeSelectedLabel').textContent = label;
+      else document.getElementById('categorySelectedLabel').textContent = label;
     }
 
     function closeAllDropdowns() {
       document.querySelectorAll('.select-menu').forEach(menu => {
         menu.classList.remove('show', 'portal');
-        menu.style.left = '';
-        menu.style.top = '';
-        menu.style.width = '';
-        menu.style.maxHeight = '';
+        menu.style.left = ''; menu.style.top = ''; menu.style.width = ''; menu.style.maxHeight = '';
       });
       document.querySelectorAll('.select-trigger').forEach(trigger => trigger.classList.remove('active'));
       document.querySelectorAll('.dropdown-wrap').forEach(wrap => wrap.classList.remove('open'));
@@ -516,62 +449,60 @@
 
     function initMenuPortal() {
       const body = document.body;
-      ['employeeMenu', 'categoryMenu'].forEach((menuId) => {
+      ['employeeMenu', 'categoryMenu'].forEach(menuId => {
         const menu = document.getElementById(menuId);
-        if (menu && menu.dataset.portaled !== 'true') {
-          body.appendChild(menu);
-          menu.dataset.portaled = 'true';
-        }
+        if (menu && menu.dataset.portaled !== 'true') { body.appendChild(menu); menu.dataset.portaled = 'true'; }
       });
     }
 
     function openDropdown(menu, trigger) {
       const rect = trigger.getBoundingClientRect();
-      const viewportGap = 12;
-      const availableHeight = Math.max(170, window.innerHeight - rect.bottom - viewportGap);
-
+      const availableHeight = Math.max(170, window.innerHeight - rect.bottom - 12);
       menu.classList.add('show', 'portal');
       menu.style.left = `${rect.left}px`;
       menu.style.top = `${rect.bottom + 8}px`;
       menu.style.width = `${rect.width}px`;
       menu.style.maxHeight = `${availableHeight}px`;
-
       trigger.classList.add('active');
       trigger.closest('.dropdown-wrap')?.classList.add('open');
     }
 
+    function applyRoleMode() {
+      if (state.userRole === 'staff') state.selectedOwner = state.currentUser;
+    }
+
     function renderFilters() {
-      const employeeOptions = [
-        { value: 'all', label: 'พนักงานทั้งหมด' },
-        ...excelData.masterData.employees.map(emp => ({ value: emp, label: emp }))
-      ];
-      const categoryOptions = [
-        { value: 'all', label: 'ทุกหมวดงาน' },
-        ...excelData.masterData.categories.map(cat => ({ value: cat, label: cat }))
-      ];
+      const employeeOptions = [{ value:'all', label:'พนักงานทั้งหมด' }, ...excelData.masterData.employees.map(emp => ({ value:emp, label:emp }))];
+      const categoryOptions = [{ value:'all', label:'ทุกหมวดงาน' }, ...excelData.masterData.categories.map(cat => ({ value:cat, label:cat }))];
 
       const employeeMenu = document.getElementById('employeeMenu');
       const categoryMenu = document.getElementById('categoryMenu');
 
       buildDropdownMenu(employeeMenu, employeeOptions, state.selectedOwner, (value, label) => {
-        state.selectedOwner = value;
-        setDropdownLabel('employee', label);
-        renderAll();
+        state.selectedOwner = value; setDropdownLabel('employee', label); renderAll();
       });
 
       buildDropdownMenu(categoryMenu, categoryOptions, state.selectedCategory, (value, label) => {
-        state.selectedCategory = value;
-        setDropdownLabel('category', label);
-        renderAdhoc();
-        renderMonthly();
+        state.selectedCategory = value; setDropdownLabel('category', label); renderAdhoc(); renderMonthly();
       });
 
       setDropdownLabel('employee', employeeOptions.find(item => item.value === state.selectedOwner)?.label || 'พนักงานทั้งหมด');
       setDropdownLabel('category', categoryOptions.find(item => item.value === state.selectedCategory)?.label || 'ทุกหมวดงาน');
 
-      const dateFilter = document.getElementById('dateFilter');
-      dateFilter.value = selectedYMD();
+      const roleSelect = document.getElementById('roleSelect');
+      const selfFilter = document.getElementById('selfFilter');
+      const employeeTrigger = document.getElementById('employeeTrigger');
+      roleSelect.value = state.userRole;
+      selfFilter.innerHTML = '';
+      excelData.masterData.employees.forEach(emp => {
+        const opt = document.createElement('option'); opt.value = emp; opt.textContent = emp; selfFilter.appendChild(opt);
+      });
+      selfFilter.value = state.currentUser;
+      selfFilter.disabled = state.userRole !== 'staff';
+      employeeTrigger.disabled = state.userRole === 'staff';
+      employeeTrigger.classList.toggle('opacity-60', state.userRole === 'staff');
 
+      document.getElementById('dateFilter').value = selectedYMD();
       document.getElementById('currentDate').textContent = state.selectedDate.toLocaleDateString('th-TH', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
       });
@@ -582,36 +513,21 @@
       const fallback = document.getElementById('logoFallback');
       const nameText = document.getElementById('companyNameText');
       const nameInput = document.getElementById('companyNameInput');
-
       nameText.textContent = companyProfile.name;
       nameInput.value = companyProfile.name;
-      if (companyProfile.logoUrl) {
-        logo.src = companyProfile.logoUrl;
-        logo.classList.remove('hidden');
-        fallback.classList.add('hidden');
-      } else {
-        logo.classList.add('hidden');
-        fallback.classList.remove('hidden');
-      }
+      if (companyProfile.logoUrl) { logo.src = companyProfile.logoUrl; logo.classList.remove('hidden'); fallback.classList.add('hidden'); }
+      else { logo.classList.add('hidden'); fallback.classList.remove('hidden'); }
     }
 
     function renderRoutine() {
       const routineList = document.getElementById('routineList');
       routineList.innerHTML = '';
-
       const tasks = getRoutineTasksForDate(state.selectedOwner, selectedYMD());
-      let doneSum = 0;
-      let totalSum = 0;
-
-      if (tasks.length === 0) {
-        routineList.innerHTML = '<p class="text-slate-400 text-sm">ยังไม่มีข้อมูล Routine สำหรับตัวกรองที่เลือก</p>';
-      }
-
+      let doneSum = 0, totalSum = 0;
+      if (!tasks.length) routineList.innerHTML = '<p class="text-slate-400 text-sm">ยังไม่มีข้อมูล Routine สำหรับตัวกรองที่เลือก</p>';
       tasks.forEach(task => {
-        doneSum += task.done;
-        totalSum += task.total;
+        doneSum += task.done; totalSum += task.total;
         const percent = task.total ? Math.round((task.done / task.total) * 100) : 0;
-
         const row = document.createElement('div');
         row.className = 'mb-2 p-3 rounded-lg border border-slate-700 bg-slate-900/45';
         row.innerHTML = `
@@ -624,11 +540,9 @@
           </div>
           <div class="w-full h-2 mt-2 bg-slate-700 rounded-full">
             <div class="h-2 rounded-full ${percent === 100 ? 'bg-successGreen' : 'bg-accentGold'}" style="width:${percent}%"></div>
-          </div>
-        `;
+          </div>`;
         routineList.appendChild(row);
       });
-
       const overall = totalSum ? Math.round((doneSum / totalSum) * 100) : 0;
       document.getElementById('routinePercent').textContent = `${overall}%`;
       document.getElementById('routineCount').textContent = `${doneSum}/${totalSum} งาน`;
@@ -637,37 +551,25 @@
     }
 
     function statusBadge(statusMeta) {
-      if (statusMeta.level === 'success') {
-        return '<span class="px-2 py-1 rounded-md border border-green-500/40 bg-green-500/15 text-green-300 text-xs">Success</span>';
-      }
-      if (statusMeta.level === 'overdue') {
-        return '<span class="px-2 py-1 rounded-md border border-red-500/60 bg-red-500/15 text-red-300 text-xs animate-pulse">Overdue</span>';
-      }
-      if (statusMeta.level === 'warning') {
-        return `<span class="px-2 py-1 rounded-md border border-yellow-500/60 bg-yellow-500/15 text-yellow-300 text-xs">${statusMeta.label}</span>`;
-      }
+      if (statusMeta.level === 'success') return '<span class="px-2 py-1 rounded-md border border-green-500/40 bg-green-500/15 text-green-300 text-xs">Success</span>';
+      if (statusMeta.level === 'overdue') return '<span class="px-2 py-1 rounded-md border border-red-500/60 bg-red-500/15 text-red-300 text-xs animate-pulse">Overdue</span>';
+      if (statusMeta.level === 'warning') return `<span class="px-2 py-1 rounded-md border border-yellow-500/60 bg-yellow-500/15 text-yellow-300 text-xs">${statusMeta.label}</span>`;
       return '<span class="px-2 py-1 rounded-md border border-slate-600 bg-slate-700/35 text-slate-300 text-xs">Pending</span>';
     }
 
     function renderAdhoc() {
       const tbody = document.getElementById('adhocTable');
       tbody.innerHTML = '';
-
-      let pendingCount = 0;
-      let warningCount = 0;
-      let overdueCount = 0;
-
+      let pendingCount = 0, warningCount = 0, overdueCount = 0;
       const rows = filteredAdhocTasks();
-      if (rows.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="px-3 py-6 text-center text-slate-400">ไม่พบงาน Adhoc ตามตัวกรองที่เลือก</td></tr>';
-      }
+      if (!rows.length) tbody.innerHTML = '<tr><td colspan="6" class="px-3 py-6 text-center text-slate-400">ไม่พบงาน Adhoc ตามตัวกรองที่เลือก</td></tr>';
 
       rows.forEach(task => {
         const meta = computeTaskStatus(task);
+        const owners = parseOwners(task.owner);
         if (meta.level !== 'success') pendingCount += 1;
         if (meta.level === 'warning') warningCount += 1;
         if (meta.level === 'overdue') overdueCount += 1;
-
         const tr = document.createElement('tr');
         tr.className = 'border-b border-slate-800/85 hover:bg-slate-900/35';
         if (meta.level === 'overdue') tr.classList.add('bg-red-900/15');
@@ -679,12 +581,11 @@
             <p class="text-xs text-slate-400">${task.description}</p>
             <p class="text-[11px] text-accentBlue mt-1">${task.category}</p>
           </td>
-          <td class="px-3 py-3">${task.owner}</td>
+          <td class="px-3 py-3"><div class="flex flex-wrap gap-1.5">${owners.map(owner => `<span class="px-2 py-0.5 rounded-full bg-slate-700/80 border border-slate-600 text-[11px] text-slate-200">${owner}</span>`).join('')}</div></td>
           <td class="px-3 py-3 text-slate-400">${formatThaiDate(task.receiveDate)}</td>
           <td class="px-3 py-3 ${meta.level === 'overdue' ? 'text-red-300 font-semibold' : 'text-slate-300'}">${formatThaiDate(task.deadline)}</td>
           <td class="px-3 py-3 text-slate-400">${task.actualDeliveryDate ? formatThaiDate(task.actualDeliveryDate) : '-'}</td>
-          <td class="px-3 py-3">${statusBadge(meta)}</td>
-        `;
+          <td class="px-3 py-3">${statusBadge(meta)}</td>`;
         tbody.appendChild(tr);
       });
 
@@ -697,28 +598,22 @@
       const rows = filteredAdhocTasks();
       const summary = { success: 0, pending: 0, overdue: 0 };
       const byEmployee = {};
-
-      excelData.masterData.employees.forEach(emp => {
-        byEmployee[emp] = { total: 0, onTime: 0, overdue: 0 };
-      });
+      excelData.masterData.employees.forEach(emp => { byEmployee[emp] = { total: 0, onTime: 0, overdue: 0 }; });
 
       rows.forEach(task => {
         const meta = computeTaskStatus(task);
-        byEmployee[task.owner] ??= { total: 0, onTime: 0, overdue: 0 };
-        byEmployee[task.owner].total += 1;
+        const owners = parseOwners(task.owner);
+        owners.forEach(owner => { byEmployee[owner] ??= { total: 0, onTime: 0, overdue: 0 }; byEmployee[owner].total += 1; });
 
         if (meta.level === 'success') {
           summary.success += 1;
           const delivered = parseDate(task.actualDeliveryDate || task.deadline);
           const deadline = parseDate(task.deadline);
-          if (delivered <= deadline) {
-            byEmployee[task.owner].onTime += 1;
-          } else {
-            byEmployee[task.owner].overdue += 1;
-          }
+          if (delivered <= deadline) owners.forEach(owner => byEmployee[owner].onTime += 1);
+          else owners.forEach(owner => byEmployee[owner].overdue += 1);
         } else if (meta.level === 'overdue') {
           summary.overdue += 1;
-          byEmployee[task.owner].overdue += 1;
+          owners.forEach(owner => byEmployee[owner].overdue += 1);
         } else {
           summary.pending += 1;
         }
@@ -730,47 +625,28 @@
     function renderMonthly() {
       const { summary, byEmployee } = monthlyAggregation();
       const ctx = document.getElementById('monthlyChart').getContext('2d');
-
-      if (state.monthlyChart) {
-        state.monthlyChart.destroy();
-      }
+      if (state.monthlyChart) state.monthlyChart.destroy();
 
       state.monthlyChart = new Chart(ctx, {
         type: 'bar',
         data: {
           labels: ['Success', 'Pending', 'Overdue'],
-          datasets: [{
-            data: [summary.success, summary.pending, summary.overdue],
-            backgroundColor: ['rgba(16,185,129,0.85)', 'rgba(56,189,248,0.85)', 'rgba(239,68,68,0.85)'],
-            borderRadius: 8,
-            maxBarThickness: 62
-          }]
+          datasets: [{ data: [summary.success, summary.pending, summary.overdue], backgroundColor: ['rgba(16,185,129,0.85)','rgba(56,189,248,0.85)','rgba(239,68,68,0.85)'], borderRadius: 8, maxBarThickness: 62 }]
         },
         options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
+          responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } },
           scales: {
-            y: {
-              beginAtZero: true,
-              ticks: { color: '#94a3b8', precision: 0 },
-              grid: { color: 'rgba(148,163,184,0.15)' }
-            },
-            x: {
-              ticks: { color: '#cbd5e1' },
-              grid: { display: false }
-            }
+            y: { beginAtZero: true, ticks: { color: '#94a3b8', precision: 0 }, grid: { color: 'rgba(148,163,184,0.15)' } },
+            x: { ticks: { color: '#cbd5e1' }, grid: { display: false } }
           }
         }
       });
 
       const slaList = document.getElementById('slaList');
       slaList.innerHTML = '';
-
       Object.entries(byEmployee).forEach(([emp, stats]) => {
         if (state.selectedOwner !== 'all' && emp !== state.selectedOwner) return;
         const sla = stats.total ? Math.round((stats.onTime / stats.total) * 100) : 0;
-
         const card = document.createElement('div');
         card.className = 'p-3 rounded-lg border border-slate-700 bg-slate-900/45';
         card.innerHTML = `
@@ -779,15 +655,13 @@
             <span class="text-sm ${sla >= 80 ? 'text-green-300' : 'text-yellow-300'}">SLA ${sla}%</span>
           </div>
           <p class="text-xs text-slate-400 mb-2">On-time ${stats.onTime} / Total ${stats.total} | Overdue ${stats.overdue}</p>
-          <div class="w-full h-2 bg-slate-700 rounded-full">
-            <div class="h-2 rounded-full ${sla >= 80 ? 'bg-successGreen' : 'bg-warningYellow'}" style="width:${sla}%"></div>
-          </div>
-        `;
+          <div class="w-full h-2 bg-slate-700 rounded-full"><div class="h-2 rounded-full ${sla >= 80 ? 'bg-successGreen' : 'bg-warningYellow'}" style="width:${sla}%"></div></div>`;
         slaList.appendChild(card);
       });
     }
 
     function renderAll() {
+      applyRoleMode();
       renderFilters();
       renderRoutine();
       renderAdhoc();
@@ -800,18 +674,12 @@
       const monthlyPanel = document.getElementById('monthlyPanel');
       const dailyBtn = document.getElementById('dailyBtn');
       const monthlyBtn = document.getElementById('monthlyBtn');
-
       if (view === 'daily') {
-        dailyPanel.classList.remove('hidden');
-        monthlyPanel.classList.add('hidden');
-        dailyBtn.classList.add('active');
-        monthlyBtn.classList.remove('active');
+        dailyPanel.classList.remove('hidden'); monthlyPanel.classList.add('hidden');
+        dailyBtn.classList.add('active'); monthlyBtn.classList.remove('active');
       } else {
-        dailyPanel.classList.add('hidden');
-        monthlyPanel.classList.remove('hidden');
-        monthlyPanel.classList.add('grid');
-        dailyBtn.classList.remove('active');
-        monthlyBtn.classList.add('active');
+        dailyPanel.classList.add('hidden'); monthlyPanel.classList.remove('hidden'); monthlyPanel.classList.add('grid');
+        dailyBtn.classList.remove('active'); monthlyBtn.classList.add('active');
       }
     }
 
@@ -819,9 +687,7 @@
       const ymd = selectedYMD();
       excelData.routineRows.forEach(row => {
         if (row.date === ymd && (state.selectedOwner === 'all' || row.owner === state.selectedOwner)) {
-          Object.keys(row.checks).forEach(key => {
-            row.checks[key] = 'N';
-          });
+          Object.keys(row.checks).forEach(key => { row.checks[key] = 'N'; });
         }
       });
       renderRoutine();
@@ -836,44 +702,37 @@
 
       employeeTrigger.addEventListener('click', (e) => {
         e.stopPropagation();
+        if (employeeTrigger.disabled) return;
         const willShow = !employeeMenu.classList.contains('show');
         closeAllDropdowns();
-        if (willShow) {
-          openDropdown(employeeMenu, employeeTrigger);
-        }
+        if (willShow) openDropdown(employeeMenu, employeeTrigger);
       });
 
       categoryTrigger.addEventListener('click', (e) => {
         e.stopPropagation();
         const willShow = !categoryMenu.classList.contains('show');
         closeAllDropdowns();
-        if (willShow) {
-          openDropdown(categoryMenu, categoryTrigger);
-        }
+        if (willShow) openDropdown(categoryMenu, categoryTrigger);
       });
 
-      document.addEventListener('click', () => {
-        closeAllDropdowns();
-      });
+      document.addEventListener('click', () => closeAllDropdowns());
       window.addEventListener('scroll', closeAllDropdowns, true);
       window.addEventListener('resize', closeAllDropdowns);
 
-      document.getElementById('dateFilter').addEventListener('change', (e) => {
-        if (!e.target.value) return;
-        state.selectedDate = parseDate(e.target.value);
+      document.getElementById('dateFilter').addEventListener('change', (e) => { if (!e.target.value) return; state.selectedDate = parseDate(e.target.value); renderAll(); });
+      document.getElementById('prevDateBtn').addEventListener('click', () => { const next = new Date(state.selectedDate); next.setDate(next.getDate() - 1); state.selectedDate = next; renderAll(); });
+      document.getElementById('nextDateBtn').addEventListener('click', () => { const next = new Date(state.selectedDate); next.setDate(next.getDate() + 1); state.selectedDate = next; renderAll(); });
+
+      document.getElementById('roleSelect').addEventListener('change', (e) => {
+        state.userRole = e.target.value;
+        if (state.userRole === 'staff') { state.selectedOwner = state.currentUser; switchView('daily'); }
+        else state.selectedOwner = 'all';
         renderAll();
       });
-      document.getElementById('prevDateBtn').addEventListener('click', () => {
-        const next = new Date(state.selectedDate);
-        next.setDate(next.getDate() - 1);
-        state.selectedDate = next;
-        renderAll();
-      });
-      document.getElementById('nextDateBtn').addEventListener('click', () => {
-        const next = new Date(state.selectedDate);
-        next.setDate(next.getDate() + 1);
-        state.selectedDate = next;
-        renderAll();
+
+      document.getElementById('selfFilter').addEventListener('change', (e) => {
+        state.currentUser = e.target.value;
+        if (state.userRole === 'staff') { state.selectedOwner = state.currentUser; renderAll(); }
       });
 
       document.getElementById('companyNameInput').addEventListener('input', (e) => {
@@ -885,10 +744,7 @@
         const file = e.target.files?.[0];
         if (!file) return;
         const reader = new FileReader();
-        reader.onload = () => {
-          companyProfile.logoUrl = reader.result;
-          renderCompanyProfile();
-        };
+        reader.onload = () => { companyProfile.logoUrl = reader.result; renderCompanyProfile(); };
         reader.readAsDataURL(file);
       });
 
@@ -903,7 +759,6 @@
       document.getElementById('resetDailyBtn').addEventListener('click', resetRoutineForSelectedDate);
     }
 
-    // Initial render
     renderCompanyProfile();
     renderAll();
     bindEvents();
