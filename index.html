@@ -32,9 +32,9 @@
   <style>
     body {
       background:
-        radial-gradient(circle at top right, rgba(56, 189, 248, 0.12), transparent 45%),
-        radial-gradient(circle at bottom left, rgba(212, 160, 23, 0.1), transparent 35%),
-        #0b1220;
+        radial-gradient(circle at top right, rgba(216, 180, 254, 0.34), transparent 42%),
+        radial-gradient(circle at bottom left, rgba(196, 181, 253, 0.28), transparent 38%),
+        linear-gradient(145deg, #29143d 0%, #1f2148 48%, #15233f 100%);
     }
 
     .glass-card {
@@ -168,6 +168,24 @@
 <body class="text-slate-200 min-h-screen p-4 md:p-6 lg:p-8 font-sans">
   <header class="flex flex-col xl:flex-row gap-4 xl:items-end xl:justify-between mb-6 filters-layer">
     <div>
+      <div class="flex flex-wrap items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-xl border border-slate-500/40 bg-slate-900/60 flex items-center justify-center overflow-hidden">
+          <img id="companyLogo" src="" alt="Company Logo" class="hidden w-full h-full object-cover" />
+          <i id="logoFallback" class="fa-regular fa-building text-lg text-accentGold"></i>
+        </div>
+        <div>
+          <p class="text-xs text-slate-400">Company</p>
+          <h2 id="companyNameText" class="text-lg font-semibold text-white">Your Company Name</h2>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        <input id="companyNameInput" type="text" placeholder="แก้ชื่อบริษัท..." class="bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2 text-sm min-w-[220px]" />
+        <label for="logoUpload" class="chip cursor-pointer">
+          <i class="fa-solid fa-upload mr-1"></i>อัปโหลดโลโก้
+        </label>
+        <input id="logoUpload" type="file" accept="image/*" class="hidden" />
+        <button id="clearLogoBtn" type="button" class="chip">ล้างโลโก้</button>
+      </div>
       <h1 class="text-2xl md:text-3xl font-bold text-white tracking-wide">
         <i class="fa-solid fa-gauge-high text-accentGold mr-2"></i>
         Executive Task Dashboard
@@ -206,11 +224,14 @@
         </div>
       </div>
 
-      <div class="glass-card px-3 py-2 flex items-center">
-        <div>
-          <p class="text-xs text-slate-400">วันที่ใช้งาน</p>
-          <p class="text-sm text-white" id="currentDate"></p>
+      <div class="glass-card px-3 py-2">
+        <p class="text-xs text-slate-400 mb-1">ย้อนหลัง / วันที่ใช้งาน</p>
+        <div class="flex items-center gap-2 mb-2">
+          <button id="prevDateBtn" type="button" class="chip !py-1 !px-2"><i class="fa-solid fa-chevron-left"></i></button>
+          <input id="dateFilter" type="date" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-2 py-1.5 text-sm" />
+          <button id="nextDateBtn" type="button" class="chip !py-1 !px-2"><i class="fa-solid fa-chevron-right"></i></button>
         </div>
+        <p class="text-xs text-slate-300" id="currentDate"></p>
       </div>
     </div>
   </header>
@@ -249,7 +270,7 @@
       <article class="glass-card p-5 lg:col-span-1 h-[560px] flex flex-col">
         <div class="flex justify-between items-center mb-3 border-b border-slate-700 pb-2">
           <h2 class="font-semibold text-white"><i class="fa-solid fa-list-check text-accentGold mr-2"></i>Routine (รายวัน)</h2>
-          <button id="resetDailyBtn" class="text-xs text-accentBlue hover:text-white">รีเ็ตวันนี้</button>
+          <button id="resetDailyBtn" class="text-xs text-accentBlue hover:text-white">รีเซ็ตวันนี้</button>
         </div>
         <p class="text-xs text-slate-400 mb-3">ระบบรองรับการเพิ่ม Task ใหม่อัตโนมัติจากข้อมูล Excel เช่น Task 17, 18...</p>
         <div id="routineList" class="overflow-auto pr-1 flex-1"></div>
@@ -307,6 +328,14 @@
         categories: ['Operations', 'Sales', 'Finance', 'Support']
       },
       routineRows: [
+        { owner: 'นาย A', date: '2026-03-28', checks: { 'Task 1': 'Y', 'Task 2': 'N', 'Task 3': 'Y', 'Task 4': 'N', 'Task 17': 'N' } },
+        { owner: 'นางสาว B', date: '2026-03-28', checks: { 'Task 1': 'Y', 'Task 2': 'Y', 'Task 3': 'Y', 'Task 4': 'N', 'Task 17': 'Y' } },
+        { owner: 'นาย C', date: '2026-03-28', checks: { 'Task 1': 'N', 'Task 2': 'Y', 'Task 3': 'Y', 'Task 4': 'Y', 'Task 17': 'N', 'Task 18': 'N' } },
+        { owner: 'นางสาว D', date: '2026-03-28', checks: { 'Task 1': 'Y', 'Task 2': 'N', 'Task 3': 'N', 'Task 4': 'Y' } },
+        { owner: 'นาย A', date: '2026-03-29', checks: { 'Task 1': 'Y', 'Task 2': 'Y', 'Task 3': 'Y', 'Task 4': 'Y', 'Task 17': 'N' } },
+        { owner: 'นางสาว B', date: '2026-03-29', checks: { 'Task 1': 'Y', 'Task 2': 'N', 'Task 3': 'Y', 'Task 4': 'Y', 'Task 17': 'Y' } },
+        { owner: 'นาย C', date: '2026-03-29', checks: { 'Task 1': 'Y', 'Task 2': 'Y', 'Task 3': 'Y', 'Task 4': 'Y', 'Task 17': 'Y', 'Task 18': 'Y' } },
+        { owner: 'นางสาว D', date: '2026-03-29', checks: { 'Task 1': 'N', 'Task 2': 'Y', 'Task 3': 'N', 'Task 4': 'Y' } },
         { owner: 'นาย A', date: '2026-03-30', checks: { 'Task 1': 'Y', 'Task 2': 'Y', 'Task 3': 'N', 'Task 4': 'Y', 'Task 17': 'N' } },
         { owner: 'นางสาว B', date: '2026-03-30', checks: { 'Task 1': 'Y', 'Task 2': 'N', 'Task 3': 'Y', 'Task 4': 'Y', 'Task 17': 'Y' } },
         { owner: 'นาย C', date: '2026-03-30', checks: { 'Task 1': 'Y', 'Task 2': 'Y', 'Task 3': 'Y', 'Task 4': 'Y', 'Task 17': 'Y', 'Task 18': 'N' } },
@@ -370,8 +399,13 @@
       selectedOwner: 'all',
       selectedCategory: 'all',
       currentView: 'daily',
-      today: new Date(),
+      selectedDate: new Date('2026-03-30'),
       monthlyChart: null
+    };
+
+    const companyProfile = {
+      name: 'Your Company Name',
+      logoUrl: ''
     };
 
     const toYMD = (d) => {
@@ -387,7 +421,7 @@
       return new Date(y, m - 1, d);
     };
 
-    const todayYMD = () => toYMD(state.today);
+    const selectedYMD = () => toYMD(state.selectedDate);
 
     const formatThaiDate = (dateStr) => parseDate(dateStr).toLocaleDateString('th-TH', {
       year: 'numeric', month: 'short', day: 'numeric'
@@ -416,7 +450,7 @@
     }
 
     function computeTaskStatus(task) {
-      const today = parseDate(todayYMD());
+      const today = parseDate(selectedYMD());
       const deadline = parseDate(task.deadline);
       const msPerDay = 1000 * 60 * 60 * 24;
       const diffDays = Math.ceil((deadline - today) / msPerDay);
@@ -434,7 +468,9 @@
     }
 
     function filteredAdhocTasks() {
+      const asOfDate = parseDate(selectedYMD());
       return excelData.adhocRows
+        .filter(task => parseDate(task.receiveDate) <= asOfDate)
         .filter(task => state.selectedOwner === 'all' || task.owner === state.selectedOwner)
         .filter(task => state.selectedCategory === 'all' || task.category === state.selectedCategory)
         .sort((a, b) => parseDate(a.deadline) - parseDate(b.deadline));
@@ -533,16 +569,37 @@
       setDropdownLabel('employee', employeeOptions.find(item => item.value === state.selectedOwner)?.label || 'พนักงานทั้งหมด');
       setDropdownLabel('category', categoryOptions.find(item => item.value === state.selectedCategory)?.label || 'ทุกหมวดงาน');
 
-      document.getElementById('currentDate').textContent = state.today.toLocaleDateString('th-TH', {
+      const dateFilter = document.getElementById('dateFilter');
+      dateFilter.value = selectedYMD();
+
+      document.getElementById('currentDate').textContent = state.selectedDate.toLocaleDateString('th-TH', {
         weekday: 'long', year: 'numeric', month: 'long', day: 'numeric'
       });
+    }
+
+    function renderCompanyProfile() {
+      const logo = document.getElementById('companyLogo');
+      const fallback = document.getElementById('logoFallback');
+      const nameText = document.getElementById('companyNameText');
+      const nameInput = document.getElementById('companyNameInput');
+
+      nameText.textContent = companyProfile.name;
+      nameInput.value = companyProfile.name;
+      if (companyProfile.logoUrl) {
+        logo.src = companyProfile.logoUrl;
+        logo.classList.remove('hidden');
+        fallback.classList.add('hidden');
+      } else {
+        logo.classList.add('hidden');
+        fallback.classList.remove('hidden');
+      }
     }
 
     function renderRoutine() {
       const routineList = document.getElementById('routineList');
       routineList.innerHTML = '';
 
-      const tasks = getRoutineTasksForDate(state.selectedOwner, todayYMD());
+      const tasks = getRoutineTasksForDate(state.selectedOwner, selectedYMD());
       let doneSum = 0;
       let totalSum = 0;
 
@@ -758,8 +815,8 @@
       }
     }
 
-    function resetRoutineForToday() {
-      const ymd = todayYMD();
+    function resetRoutineForSelectedDate() {
+      const ymd = selectedYMD();
       excelData.routineRows.forEach(row => {
         if (row.date === ymd && (state.selectedOwner === 'all' || row.owner === state.selectedOwner)) {
           Object.keys(row.checks).forEach(key => {
@@ -801,12 +858,53 @@
       window.addEventListener('scroll', closeAllDropdowns, true);
       window.addEventListener('resize', closeAllDropdowns);
 
+      document.getElementById('dateFilter').addEventListener('change', (e) => {
+        if (!e.target.value) return;
+        state.selectedDate = parseDate(e.target.value);
+        renderAll();
+      });
+      document.getElementById('prevDateBtn').addEventListener('click', () => {
+        const next = new Date(state.selectedDate);
+        next.setDate(next.getDate() - 1);
+        state.selectedDate = next;
+        renderAll();
+      });
+      document.getElementById('nextDateBtn').addEventListener('click', () => {
+        const next = new Date(state.selectedDate);
+        next.setDate(next.getDate() + 1);
+        state.selectedDate = next;
+        renderAll();
+      });
+
+      document.getElementById('companyNameInput').addEventListener('input', (e) => {
+        companyProfile.name = e.target.value.trim() || 'Your Company Name';
+        renderCompanyProfile();
+      });
+
+      document.getElementById('logoUpload').addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          companyProfile.logoUrl = reader.result;
+          renderCompanyProfile();
+        };
+        reader.readAsDataURL(file);
+      });
+
+      document.getElementById('clearLogoBtn').addEventListener('click', () => {
+        companyProfile.logoUrl = '';
+        document.getElementById('logoUpload').value = '';
+        renderCompanyProfile();
+      });
+
       document.getElementById('dailyBtn').addEventListener('click', () => switchView('daily'));
       document.getElementById('monthlyBtn').addEventListener('click', () => switchView('monthly'));
-      document.getElementById('resetDailyBtn').addEventListener('click', resetRoutineForToday);
+      document.getElementById('resetDailyBtn').addEventListener('click', resetRoutineForSelectedDate);
     }
 
     // Initial render
+    renderCompanyProfile();
     renderAll();
     bindEvents();
     switchView('daily');
