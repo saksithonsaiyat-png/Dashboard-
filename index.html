@@ -104,6 +104,13 @@
 
     .select-menu.show { display: block; }
 
+    .select-menu.portal {
+      position: fixed;
+      right: auto;
+      top: auto;
+      z-index: 9999;
+    }
+
     .filters-layer {
       position: relative;
       z-index: 120;
@@ -460,9 +467,30 @@
     }
 
     function closeAllDropdowns() {
-      document.querySelectorAll('.select-menu').forEach(menu => menu.classList.remove('show'));
+      document.querySelectorAll('.select-menu').forEach(menu => {
+        menu.classList.remove('show', 'portal');
+        menu.style.left = '';
+        menu.style.top = '';
+        menu.style.width = '';
+        menu.style.maxHeight = '';
+      });
       document.querySelectorAll('.select-trigger').forEach(trigger => trigger.classList.remove('active'));
       document.querySelectorAll('.dropdown-wrap').forEach(wrap => wrap.classList.remove('open'));
+    }
+
+    function openDropdown(menu, trigger) {
+      const rect = trigger.getBoundingClientRect();
+      const viewportGap = 12;
+      const availableHeight = Math.max(170, window.innerHeight - rect.bottom - viewportGap);
+
+      menu.classList.add('show', 'portal');
+      menu.style.left = `${rect.left}px`;
+      menu.style.top = `${rect.bottom + 8}px`;
+      menu.style.width = `${rect.width}px`;
+      menu.style.maxHeight = `${availableHeight}px`;
+
+      trigger.classList.add('active');
+      trigger.closest('.dropdown-wrap')?.classList.add('open');
     }
 
     function renderFilters() {
@@ -742,9 +770,7 @@
         const willShow = !employeeMenu.classList.contains('show');
         closeAllDropdowns();
         if (willShow) {
-          employeeMenu.classList.add('show');
-          employeeTrigger.classList.add('active');
-          employeeTrigger.closest('.dropdown-wrap')?.classList.add('open');
+          openDropdown(employeeMenu, employeeTrigger);
         }
       });
 
@@ -753,15 +779,15 @@
         const willShow = !categoryMenu.classList.contains('show');
         closeAllDropdowns();
         if (willShow) {
-          categoryMenu.classList.add('show');
-          categoryTrigger.classList.add('active');
-          categoryTrigger.closest('.dropdown-wrap')?.classList.add('open');
+          openDropdown(categoryMenu, categoryTrigger);
         }
       });
 
       document.addEventListener('click', () => {
         closeAllDropdowns();
       });
+      window.addEventListener('scroll', closeAllDropdowns, true);
+      window.addEventListener('resize', closeAllDropdowns);
 
       document.getElementById('dailyBtn').addEventListener('click', () => switchView('daily'));
       document.getElementById('monthlyBtn').addEventListener('click', () => switchView('monthly'));
