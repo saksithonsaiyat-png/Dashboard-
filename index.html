@@ -304,7 +304,7 @@
           <h2 class="font-semibold text-white"><i class="fa-solid fa-list-check text-accentGold mr-2"></i>Routine (รายวัน)</h2>
           <button id="resetDailyBtn" class="text-xs text-accentBlue hover:text-white">รีเซ็ตวันนี้</button>
         </div>
-        <p class="text-xs text-slate-400 mb-3">ระบบรองรับการเพิ่ม Task ใหม่อัตโนมัติจากข้อมูล Excel เช่น Task 17, 18...</p>
+        <p class="text-xs text-slate-400 mb-3">ระบบรองรับการเพิ่ม Task ใหม่อัตโมัติจากข้อมูล Excel เช่น Task 17, 18...</p>
         <div id="routineList" class="overflow-auto pr-1 flex-1"></div>
       </article>
 
@@ -374,10 +374,10 @@
     const brandingStorageKey = 'dashboardBranding';
 
     const sampleTasks = [
-      { id: 1, title: 'ตรวจสอบยอดขายสาขา', ownerId: 'EMP001', ownerName: 'สมชาย ใจดี', jobType: 'Daily Ops', category: 'Routine', receiveDate: '2026-03-31', deadline: '2026-03-31', actualDelivery: '', status: 'pending', progress: 0, workStatus: 'not_started' },
-      { id: 2, title: 'สรุปรายงาน KPI รายวัน', ownerId: 'EMP002', ownerName: 'สมหญิง พัฒนา', jobType: 'Report', category: 'Routine', receiveDate: '2026-03-31', deadline: '2026-03-31', actualDelivery: '2026-03-31', status: 'success', progress: 100, workStatus: 'done' },
-      { id: 3, title: 'เตรียมไฟล์นำเสนอผู้บริหาร', ownerId: 'EMP001', ownerName: 'สมชาย ใจดี', jobType: 'Presentation', category: 'Adhoc', receiveDate: '2026-03-29', deadline: '2026-04-01', actualDelivery: '', status: 'pending', progress: 0, workStatus: 'not_started' },
-      { id: 4, title: 'อัปเดตคู่มือการทำงาน', ownerId: 'EMP003', ownerName: 'อนันต์ ทดสอบ', jobType: 'Documentation', category: 'Adhoc', receiveDate: '2026-03-25', deadline: '2026-03-28', actualDelivery: '', status: 'overdue', progress: 40, workStatus: 'in_progress' }
+      { id: 1, title: 'ตรวจสอบยอดขายสาขา', ownerId: 'EMP001', ownerName: 'สมชาย ใจดี', category: 'Routine', receiveDate: '2026-03-31', deadline: '2026-03-31', actualDelivery: '', status: 'pending', progress: 0, workStatus: 'not_started' },
+      { id: 2, title: 'สรุปรายงาน KPI รายวัน', ownerId: 'EMP002', ownerName: 'สมหญิง พัฒนา', category: 'Routine', receiveDate: '2026-03-31', deadline: '2026-03-31', actualDelivery: '2026-03-31', status: 'success', progress: 100, workStatus: 'done' },
+      { id: 3, title: 'เตรียมไฟล์นำเสนอผู้บริหาร', ownerId: 'EMP001', ownerName: 'สมชาย ใจดี', category: 'Adhoc', receiveDate: '2026-03-29', deadline: '2026-04-01', actualDelivery: '', status: 'pending', progress: 0, workStatus: 'not_started' },
+      { id: 4, title: 'อัปเดตคู่มือการทำงาน', ownerId: 'EMP003', ownerName: 'อนันต์ ทดสอบ', category: 'Adhoc', receiveDate: '2026-03-25', deadline: '2026-03-28', actualDelivery: '', status: 'overdue', progress: 40, workStatus: 'in_progress' }
     ];
 
     const el = (id) => document.getElementById(id);
@@ -393,6 +393,7 @@
       const parsed = new Date(value);
       return Number.isNaN(parsed.getTime()) ? '' : fmtDate(parsed);
     }
+
 
     function normalizeProgress(value) {
       const num = Number(value);
@@ -520,6 +521,7 @@
                 <option value="in_progress" ${task.workStatus === 'in_progress' ? 'selected' : ''}>กำลังทำ</option>
                 <option value="done" ${task.workStatus === 'done' ? 'selected' : ''}>เสร็จแล้ว</option>
               </select>
+              <div class="text-xs mt-1 ${computeStatus(task) === 'success' ? 'text-emerald-300' : computeStatus(task) === 'warning' ? 'text-yellow-300' : computeStatus(task) === 'overdue' ? 'text-red-300' : 'text-slate-300'}">${workStatusLabel(task.workStatus)} • ${computeStatus(task)}</div>
             </div>
             <div class="flex items-center">
               <div class="w-full h-2 bg-slate-700 rounded-full">
@@ -623,6 +625,7 @@
         </tr>`;
       }).join('');
 
+
       tbody.querySelectorAll('[data-job-type-id]').forEach(inp => {
         inp.addEventListener('change', (e) => {
           const task = appState.tasks.find(x => x.id === Number(e.target.dataset.jobTypeId));
@@ -714,6 +717,7 @@
       }).join('') || '<p class="text-sm text-slate-400">ไม่มีข้อมูล</p>';
     }
 
+
     function renderDailyTrend() {
       const labels = [];
       const rates = [];
@@ -788,52 +792,9 @@
       };
     }
 
-    function bindEvents() {
-      el('dateFilter').addEventListener('change', (e) => { appState.date = new Date(e.target.value); updateDateLabel(); renderAll(); });
-      el('prevDateBtn').addEventListener('click', () => { appState.date.setDate(appState.date.getDate() - 1); el('dateFilter').value = fmtDate(appState.date); updateDateLabel(); renderAll(); });
-      el('nextDateBtn').addEventListener('click', () => { appState.date.setDate(appState.date.getDate() + 1); el('dateFilter').value = fmtDate(appState.date); updateDateLabel(); renderAll(); });
-      el('resetDailyBtn').addEventListener('click', () => {
-        appState.tasks.forEach(t => { if (t.category === 'Routine') { t.actualDelivery = ''; t.progress = 0; t.workStatus = 'not_started'; } });
-        saveTasks();
-        renderAll();
-      });
-      el('syncNowBtn').addEventListener('click', syncFromGraph);
-      el('excelUpload').addEventListener('change', async (e) => {
-        const file = e.target.files?.[0];
-        if (file) await importExcel(file);
-        e.target.value = '';
-      });
-      el('pdfUpload').addEventListener('change', (e) => {
-        const files = [...(e.target.files || [])];
-        appState.uploadedPdfs.push(...files.map(f => ({ name: f.name, size: Math.round(f.size / 1024) })));
-        el('uploadedPdfList').innerHTML = appState.uploadedPdfs.map((f, i) => `<p><i class="fa-regular fa-file-pdf text-red-300 mr-1"></i>${i + 1}. ${f.name} (${f.size} KB)</p>`).join('');
-        e.target.value = '';
-      });
-
-      el('companyNameInput').addEventListener('input', (e) => {
-        const value = e.target.value.trimStart();
-        el('companyNameText').textContent = value || 'Your Company Name';
-        saveBranding({ companyName: value });
-      });
-      el('logoUpload').addEventListener('change', (e) => {
-        const file = e.target.files?.[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = () => {
-          const dataUrl = String(reader.result || '');
-          el('companyLogo').src = dataUrl;
-          el('companyLogo').classList.remove('hidden');
-          el('logoFallback').classList.add('hidden');
-          saveBranding({ logoDataUrl: dataUrl });
-        };
-        reader.readAsDataURL(file);
-      });
-      el('clearLogoBtn').addEventListener('click', () => {
-        el('companyLogo').src = '';
-        el('companyLogo').classList.add('hidden');
-        el('logoFallback').classList.remove('hidden');
-        saveBranding({ logoDataUrl: '' });
-      });
+    function updateDropdownLabels() {
+      if (el('employeeSelect')) el('employeeSelect').value = appState.selectedEmployee;
+      if (el('categorySelect')) el('categorySelect').value = appState.selectedCategory;
     }
 
     function parseExcelRows(rows) {
@@ -888,6 +849,54 @@
         console.error(err);
         alert('Sync ไม่สำเร็จ กรุณาตรวจสอบ Backend/Token');
       }
+    }
+
+    function bindEvents() {
+      el('dateFilter').addEventListener('change', (e) => { appState.date = new Date(e.target.value); updateDateLabel(); renderAll(); });
+      el('prevDateBtn').addEventListener('click', () => { appState.date.setDate(appState.date.getDate() - 1); el('dateFilter').value = fmtDate(appState.date); updateDateLabel(); renderAll(); });
+      el('nextDateBtn').addEventListener('click', () => { appState.date.setDate(appState.date.getDate() + 1); el('dateFilter').value = fmtDate(appState.date); updateDateLabel(); renderAll(); });
+      el('resetDailyBtn').addEventListener('click', () => {
+        appState.tasks.forEach(t => { if (t.category === 'Routine') { t.actualDelivery = ''; t.progress = 0; t.workStatus = 'not_started'; } });
+        saveTasks();
+        renderAll();
+      });
+      el('syncNowBtn').addEventListener('click', syncFromGraph);
+      el('excelUpload').addEventListener('change', async (e) => {
+        const file = e.target.files?.[0];
+        if (file) await importExcel(file);
+        e.target.value = '';
+      });
+      el('pdfUpload').addEventListener('change', (e) => {
+        const files = [...(e.target.files || [])];
+        appState.uploadedPdfs.push(...files.map(f => ({ name: f.name, size: Math.round(f.size / 1024) })));
+        el('uploadedPdfList').innerHTML = appState.uploadedPdfs.map((f, i) => `<p><i class="fa-regular fa-file-pdf text-red-300 mr-1"></i>${i + 1}. ${f.name} (${f.size} KB)</p>`).join('');
+        e.target.value = '';
+      });
+
+      el('companyNameInput').addEventListener('input', (e) => {
+        const value = e.target.value.trimStart();
+        el('companyNameText').textContent = value || 'Your Company Name';
+        saveBranding({ companyName: value });
+      });
+      el('logoUpload').addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = String(reader.result || '');
+          el('companyLogo').src = dataUrl;
+          el('companyLogo').classList.remove('hidden');
+          el('logoFallback').classList.add('hidden');
+          saveBranding({ logoDataUrl: dataUrl });
+        };
+        reader.readAsDataURL(file);
+      });
+      el('clearLogoBtn').addEventListener('click', () => {
+        el('companyLogo').src = '';
+        el('companyLogo').classList.add('hidden');
+        el('logoFallback').classList.remove('hidden');
+        saveBranding({ logoDataUrl: '' });
+      });
     }
 
     initializeData();
