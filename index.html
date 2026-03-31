@@ -211,7 +211,7 @@
       </div>
     </div>
 
-    <div class="w-full xl:w-auto grid sm:grid-cols-2 xl:grid-cols-5 gap-3">
+    <div class="w-full xl:w-auto grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
       <div class="glass-card px-3 py-2">
         <label class="text-xs text-slate-400 block mb-1">พนักงาน (Master Data)</label>
         <select id="employeeSelect" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
@@ -226,14 +226,6 @@
           <option value="Routine">Routine</option>
           <option value="Adhoc">Adhoc</option>
         </select>
-      </div>
-
-      <div class="glass-card px-3 py-2">
-        <label class="text-xs text-slate-400 block mb-1">มุมมอง</label>
-        <div class="flex gap-2">
-          <button data-view="daily" class="chip active" id="dailyBtn">Daily</button>
-          <button data-view="monthly" class="chip" id="monthlyBtn">Monthly</button>
-        </div>
       </div>
 
       <div class="glass-card px-3 py-2">
@@ -366,7 +358,7 @@
       </article>
     </section>
 
-    <section id="monthlyPanel" class="xl:col-span-12 hidden grid-cols-1 lg:grid-cols-3 gap-5">
+    <section id="monthlyPanel" class="xl:col-span-12 grid grid-cols-1 lg:grid-cols-3 gap-5 mt-5">
       <article class="glass-card p-5 lg:col-span-2 h-[420px]">
         <h2 class="font-semibold text-white mb-3 border-b border-slate-700 pb-2">
           <i class="fa-solid fa-chart-column text-accentGold mr-2"></i>Monthly Summary (Success / Pending / Overdue)
@@ -387,7 +379,6 @@
   <script>
     const appState = {
       currentUser: null,
-      view: 'daily',
       roleView: 'executive',
       selectedEmployee: 'all',
       selectedCategory: 'all',
@@ -482,10 +473,7 @@
         }
         if (appState.selectedEmployee !== 'all' && task.ownerId !== appState.selectedEmployee) return false;
         if (appState.selectedCategory !== 'all' && task.category !== appState.selectedCategory) return false;
-        if (appState.view === 'daily') {
-          return task.receiveDate <= selectedDate;
-        }
-        return true;
+        return task.receiveDate <= selectedDate;
       });
     }
 
@@ -664,16 +652,7 @@
       renderAdhoc(tasks);
       renderMonthly(tasks);
       renderDailyTrend();
-      applyViewMode();
       applyRoleMode();
-    }
-
-    function applyViewMode() {
-      const daily = appState.view === 'daily';
-      el('dailyPanel').classList.toggle('hidden', !daily);
-      el('monthlyPanel').classList.toggle('hidden', daily);
-      el('dailyBtn').classList.toggle('active', daily);
-      el('monthlyBtn').classList.toggle('active', !daily);
     }
 
     function applyRoleMode() {
@@ -819,8 +798,6 @@
     function bindEvents() {
       el('loginBtn').addEventListener('click', handleLogin);
       el('logoutBtn').addEventListener('click', handleLogout);
-      el('dailyBtn').addEventListener('click', () => { appState.view = 'daily'; renderAll(); });
-      el('monthlyBtn').addEventListener('click', () => { appState.view = 'monthly'; renderAll(); });
       el('roleSelect').addEventListener('change', (e) => {
         if (appState.currentUser?.role === 'staff') {
           appState.roleView = 'staff';
