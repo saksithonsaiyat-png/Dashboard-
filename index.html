@@ -499,13 +499,35 @@
       }
       list.innerHTML = routine.map(task => {
         const checked = computeStatus(task) === 'success' ? 'checked' : '';
-        return `<label class="flex items-center gap-3 p-2 mb-2 rounded-lg bg-slate-900/50 border border-slate-700/70">
-          <input type="checkbox" data-task-id="${task.id}" class="routine-check" ${checked}>
-          <div>
-            <p class="text-sm text-white">${task.title}</p>
-            <p class="text-xs text-slate-400">${task.ownerName} • Due ${task.deadline} • Progress ${normalizeProgress(task.progress)}% (${workStatusLabel(task.workStatus)})</p>
+        const progress = normalizeProgress(task.progress);
+        return `<div class="p-2 mb-2 rounded-lg bg-slate-900/50 border border-slate-700/70">
+          <div class="flex items-center gap-3">
+            <input type="checkbox" data-task-id="${task.id}" class="routine-check" ${checked}>
+            <div class="flex-1">
+              <p class="text-sm text-white">${task.title}</p>
+              <p class="text-xs text-slate-400">${task.ownerName} • Due ${task.deadline}</p>
+            </div>
           </div>
-        </label>`;
+          <div class="mt-2 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
+            <div class="flex items-center gap-2">
+              <span class="text-slate-400">Progress</span>
+              <input type="number" min="0" max="100" value="${progress}" data-routine-progress-id="${task.id}" class="w-16 bg-slate-900/80 border border-slate-700 rounded px-2 py-1 text-xs" />
+              <span class="text-slate-300">%</span>
+            </div>
+            <div>
+              <select data-routine-status-id="${task.id}" class="w-full bg-slate-900/80 border border-slate-700 rounded px-2 py-1 text-xs">
+                <option value="not_started" ${task.workStatus === 'not_started' ? 'selected' : ''}>ยังไม่เริ่ม</option>
+                <option value="in_progress" ${task.workStatus === 'in_progress' ? 'selected' : ''}>กำลังทำ</option>
+                <option value="done" ${task.workStatus === 'done' ? 'selected' : ''}>เสร็จแล้ว</option>
+              </select>
+            </div>
+            <div class="flex items-center">
+              <div class="w-full h-2 bg-slate-700 rounded-full">
+                <div class="h-2 bg-accentBlue rounded-full" style="width:${progress}%"></div>
+              </div>
+            </div>
+          </div>
+        </div>`;
       }).join('');
 
       list.querySelectorAll('.routine-check').forEach(cb => {
@@ -517,6 +539,46 @@
           task.progress = e.target.checked ? 100 : 0;
           task.workStatus = e.target.checked ? 'done' : 'not_started';
           task.status = e.target.checked ? 'success' : 'pending';
+          saveTasks();
+          renderAll();
+        });
+      });
+
+      list.querySelectorAll('[data-routine-progress-id]').forEach(inp => {
+        inp.addEventListener('change', (e) => {
+          const task = appState.tasks.find(t => t.id === Number(e.target.dataset.routineProgressId));
+          if (!task) return;
+          task.progress = normalizeProgress(e.target.value);
+          if (task.progress >= 100) {
+            task.workStatus = 'done';
+            task.actualDelivery ||= fmtDate(appState.date);
+          } else if (task.progress > 0) {
+            task.workStatus = 'in_progress';
+            task.actualDelivery = '';
+          } else {
+            task.workStatus = 'not_started';
+            task.actualDelivery = '';
+          }
+          saveTasks();
+          renderAll();
+        });
+      });
+
+      list.querySelectorAll('[data-routine-status-id]').forEach(sel => {
+        sel.addEventListener('change', (e) => {
+          const task = appState.tasks.find(t => t.id === Number(e.target.dataset.routineStatusId));
+          if (!task) return;
+          task.workStatus = e.target.value;
+          if (task.workStatus === 'done') {
+            task.progress = 100;
+            task.actualDelivery ||= fmtDate(appState.date);
+          } else if (task.workStatus === 'in_progress') {
+            task.progress = Math.max(1, normalizeProgress(task.progress));
+            task.actualDelivery = '';
+          } else {
+            task.progress = 0;
+            task.actualDelivery = '';
+          }
           saveTasks();
           renderAll();
         });
