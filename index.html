@@ -1,13 +1,835 @@
-รูปแบบไฟล์ Excel ที่สคริปต์อ่านได้
-คอลัมน์บังคับ
-title
-ownerId
-ownerName
-category (Routine หรือ Adhoc)
-receiveDate
-deadline
-คอลัมน์เสริม (แนะนำให้ใส่)
-actualDelivery
-progress (0-100)
-workStatus (not_started / in_progress / done)
-ถ้าไม่ใส่ progress หรือ workStatus ระบบจะ default เป็น 0 และ not_started 
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Executive Task Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            darkBg: '#0b1220',
+            cardBg: 'rgba(15, 23, 42, 0.75)',
+            accentGold: '#d4a017',
+            accentBlue: '#38bdf8',
+            dangerRed: '#ef4444',
+            successGreen: '#10b981',
+            warningYellow: '#f59e0b'
+          },
+          boxShadow: {
+            glow: '0 10px 35px rgba(212,160,23,0.12)'
+          }
+        }
+      }
+    };
+  </script>
+
+  <style>
+    body {
+      background:
+        radial-gradient(circle at top right, rgba(216, 180, 254, 0.34), transparent 42%),
+        radial-gradient(circle at bottom left, rgba(196, 181, 253, 0.28), transparent 38%),
+        linear-gradient(145deg, #29143d 0%, #1f2148 48%, #15233f 100%);
+    }
+
+    .glass-card {
+      background: rgba(15, 23, 42, 0.72);
+      border: 1px solid rgba(148, 163, 184, 0.25);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border-radius: 1rem;
+      overflow: visible;
+    }
+
+    .chip {
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 9999px;
+      padding: 0.35rem 0.8rem;
+      font-size: 0.75rem;
+      color: #cbd5e1;
+      transition: all 0.25s ease;
+    }
+
+    .chip.active {
+      background: rgba(212, 160, 23, 0.2);
+      border-color: rgba(212, 160, 23, 0.6);
+      color: #fef08a;
+    }
+
+    .select-trigger {
+      width: 100%;
+      border: 1px solid rgba(51, 65, 85, 0.95);
+      background: linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(15, 23, 42, 0.62));
+      border-radius: 0.75rem;
+      min-height: 44px;
+      padding: 0.65rem 0.85rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      color: #e2e8f0;
+      font-size: 0.95rem;
+      transition: all 0.2s ease;
+    }
+
+    .select-trigger:hover {
+      border-color: rgba(56, 189, 248, 0.55);
+      box-shadow: 0 0 0 1px rgba(56, 189, 248, 0.25);
+    }
+
+    .select-trigger.active {
+      border-color: rgba(212, 160, 23, 0.65);
+      box-shadow: 0 0 0 2px rgba(212, 160, 23, 0.2);
+    }
+
+    .select-menu {
+      position: absolute;
+      left: 0;
+      right: 0;
+      top: calc(100% + 0.45rem);
+      border-radius: 0.85rem;
+      border: 1px solid rgba(71, 85, 105, 0.8);
+      background: rgba(15, 23, 42, 0.97);
+      backdrop-filter: blur(10px);
+      box-shadow: 0 18px 45px rgba(2, 6, 23, 0.45);
+      z-index: 70;
+      padding: 0.35rem;
+      display: none;
+      max-height: 280px;
+      overflow: auto;
+    }
+
+    .select-menu.show { display: block; }
+
+    .select-menu.portal {
+      position: fixed;
+      right: auto;
+      top: auto;
+      z-index: 9999;
+    }
+
+    .filters-layer {
+      position: relative;
+      z-index: 120;
+    }
+
+    .dropdown-wrap {
+      position: relative;
+      z-index: 130;
+    }
+
+    .dropdown-wrap.open {
+      z-index: 3000;
+    }
+
+    .select-option {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.65rem;
+      border: 0;
+      background: transparent;
+      color: #cbd5e1;
+      font-size: 0.95rem;
+      text-align: left;
+      padding: 0.62rem 0.68rem;
+      border-radius: 0.62rem;
+      transition: all 0.2s ease;
+    }
+
+    .select-option:hover {
+      background: rgba(30, 41, 59, 0.9);
+      color: #f8fafc;
+    }
+
+    .select-option.selected {
+      background: rgba(212, 160, 23, 0.15);
+      color: #fde68a;
+    }
+
+    .check-icon {
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    .select-option.selected .check-icon { opacity: 1; }
+
+    ::-webkit-scrollbar { width: 7px; height: 7px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.4); border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.65); }
+  </style>
+</head>
+
+<body class="text-slate-200 min-h-screen p-4 md:p-6 lg:p-8 font-sans">
+
+  <header class="flex flex-col xl:flex-row gap-4 xl:items-end xl:justify-between mb-6 filters-layer">
+    <div>
+      <div class="flex flex-wrap items-center gap-3 mb-3">
+        <div class="w-12 h-12 rounded-xl border border-slate-500/40 bg-slate-900/60 flex items-center justify-center overflow-hidden">
+          <img id="companyLogo" src="" alt="Company Logo" class="hidden w-full h-full object-cover" />
+          <i id="logoFallback" class="fa-regular fa-building text-lg text-accentGold"></i>
+        </div>
+        <div>
+          <p class="text-xs text-slate-400">Company</p>
+          <h2 id="companyNameText" class="text-lg font-semibold text-white">Your Company Name</h2>
+        </div>
+      </div>
+      <div class="flex flex-wrap items-center gap-2 mb-3">
+        <input id="companyNameInput" type="text" placeholder="แก้ชื่อบริษัท..." class="bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2 text-sm min-w-[220px]" />
+        <label for="logoUpload" class="chip cursor-pointer">
+          <i class="fa-solid fa-upload mr-1"></i>อัปโหลดโลโก้
+        </label>
+        <input id="logoUpload" type="file" accept="image/*" class="hidden" />
+        <button id="clearLogoBtn" type="button" class="chip">ล้างโลโก้</button>
+      </div>
+      <h1 class="text-2xl md:text-3xl font-bold text-white tracking-wide">
+        <i class="fa-solid fa-gauge-high text-accentGold mr-2"></i>
+        Executive Task Dashboard
+      </h1>
+      <p class="text-slate-400 text-sm mt-1">Daily & Monthly Monitoring | เชื่อมข้อมูลจาก Excel Online (Office 365)</p>
+    </div>
+
+    <div class="w-full xl:w-auto grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
+      <div class="glass-card px-3 py-2">
+        <label class="text-xs text-slate-400 block mb-1">พนักงาน (Master Data)</label>
+        <select id="employeeSelect" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
+          <option value="all">พนักงานทั้งหมด</option>
+        </select>
+      </div>
+
+      <div class="glass-card px-3 py-2">
+        <label class="text-xs text-slate-400 block mb-1">หมวดงาน (Job Category)</label>
+        <select id="categorySelect" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
+          <option value="all">ทุกหมวดงาน</option>
+          <option value="Routine">Routine</option>
+          <option value="Adhoc">Adhoc</option>
+        </select>
+      </div>
+
+      <div class="glass-card px-3 py-2">
+        <p class="text-xs text-slate-400 mb-1">ย้อนหลัง / วันที่ใช้งาน</p>
+        <div class="flex items-center gap-2 mb-2">
+          <button id="prevDateBtn" type="button" class="chip !py-1 !px-2"><i class="fa-solid fa-chevron-left"></i></button>
+          <input id="dateFilter" type="date" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-2 py-1.5 text-sm" />
+          <button id="nextDateBtn" type="button" class="chip !py-1 !px-2"><i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+        <p class="text-xs text-slate-300" id="currentDate"></p>
+      </div>
+    </div>
+  </header>
+
+  <section class="glass-card p-4 mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+      <h3 class="text-sm font-semibold text-white"><i class="fa-solid fa-cloud-arrow-up text-accentGold mr-2"></i>Data Sync Options</h3>
+      <div class="flex items-center gap-2">
+        <button id="syncNowBtn" type="button" class="chip">Sync Now</button>
+        <span class="text-[11px] text-slate-300 bg-slate-800/70 px-2 py-1 rounded-md">Microsoft Graph ผ่าน Backend API</span>
+      </div>
+    </div>
+    <div class="grid md:grid-cols-2 gap-3 text-xs">
+      <div class="bg-slate-900/45 border border-slate-700 rounded-lg p-3">
+        <p class="text-slate-200 font-medium mb-1">A) Excel 365 via Microsoft Graph (Recommended)</p>
+        <p class="text-slate-400">เชื่อมต่อ Excel Online/SharePoint/OneDrive ผ่าน Backend proxy ที่บริษัทลูกค้าดูแลเอง</p>
+      </div>
+      <div class="bg-slate-900/45 border border-slate-700 rounded-lg p-3">
+        <p class="text-slate-200 font-medium mb-1">B) Manual Import (Excel/CSV)</p>
+        <p class="text-slate-400">อัปโหลดไฟล์เป็นรอบรายวัน/รายสัปดาห์เพื่อรีเฟรช Dashboard</p>
+      </div>
+    </div>
+    <div class="mt-3 grid md:grid-cols-3 gap-3 text-xs">
+      <label class="bg-slate-900/45 border border-slate-700 rounded-lg p-3 cursor-pointer hover:border-accentBlue/60 transition">
+        <p class="text-slate-200 font-medium mb-1"><i class="fa-solid fa-file-excel text-emerald-400 mr-1"></i>อัปโหลด Excel/CSV</p>
+        <p class="text-slate-400">รองรับ .xlsx .xls .csv เพื่อทดสอบข้อมูลแทนไฟล์จริง</p>
+        <input id="excelUpload" type="file" accept=".xlsx,.xls,.csv" class="hidden" />
+      </label>
+      <label class="bg-slate-900/45 border border-slate-700 rounded-lg p-3 cursor-pointer hover:border-accentBlue/60 transition">
+        <p class="text-slate-200 font-medium mb-1"><i class="fa-solid fa-file-pdf text-red-400 mr-1"></i>อัปโหลดเอกสาร PDF</p>
+        <p class="text-slate-400">ใช้แนบเอกสารอ้างอิงงาน (ไม่ส่งออกนอกเครื่อง)</p>
+        <input id="pdfUpload" type="file" accept="application/pdf" multiple class="hidden" />
+      </label>
+      <div class="bg-slate-900/45 border border-slate-700 rounded-lg p-3">
+        <p class="text-slate-200 font-medium mb-1">สถานะระบบเชื่อมต่อ</p>
+        <p id="syncStatus" class="text-slate-400">ยังไม่ได้เชื่อมต่อ Graph API - ใช้โหมด Local Import</p>
+      </div>
+    </div>
+    <div id="uploadedPdfList" class="mt-3 text-xs text-slate-300 space-y-1"></div>
+  </section>
+
+  <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 mb-6">
+    <div class="glass-card p-4 shadow-glow">
+      <p class="text-xs text-slate-400">Routine Completion (Today)</p>
+      <h3 id="routinePercent" class="text-3xl font-bold text-white mt-1">0%</h3>
+      <p id="routineCount" class="text-xs text-slate-400 mt-1">0/0 งาน</p>
+      <div class="w-full h-2 bg-slate-700 rounded-full mt-3">
+        <div id="routineBar" class="h-2 rounded-full bg-accentGold transition-all duration-500" style="width: 0%"></div>
+      </div>
+    </div>
+
+    <div class="glass-card p-4">
+      <p class="text-xs text-slate-400">Adhoc Pending</p>
+      <h3 id="pendingCount" class="text-3xl font-bold text-white mt-1">0</h3>
+      <p class="text-xs text-warningYellow mt-1"><i class="fa-regular fa-clock mr-1"></i>อยู่ระหว่างดำเนินการ</p>
+    </div>
+
+    <div class="glass-card p-4 border border-yellow-500/35">
+      <p class="text-xs text-slate-400">Deadline ใกล้ถึง (1-2 วัน)</p>
+      <h3 id="warningCount" class="text-3xl font-bold text-warningYellow mt-1">0</h3>
+      <p class="text-xs text-yellow-300 mt-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i>ควรติดตาม</p>
+    </div>
+
+    <div class="glass-card p-4 border border-dangerRed/45">
+      <p class="text-xs text-slate-400">Overdue</p>
+      <h3 id="overdueCount" class="text-3xl font-bold text-dangerRed mt-1">0</h3>
+      <p class="text-xs text-red-300 mt-1"><i class="fa-solid fa-bell mr-1"></i>ต้องเร่งด่วน</p>
+    </div>
+  </section>
+
+  <section class="glass-card p-4 mb-6">
+    <div class="flex items-center justify-between mb-3 border-b border-slate-700 pb-2">
+      <h2 class="font-semibold text-white"><i class="fa-solid fa-chart-line text-accentGold mr-2"></i>กราฟความคืบหน้ารายวัน (7 วันล่าสุด)</h2>
+      <span class="text-xs text-slate-400">Daily Progress Trend</span>
+    </div>
+    <div class="h-[280px]"><canvas id="dailyTrendChart"></canvas></div>
+  </section>
+  <main class="grid grid-cols-1 xl:grid-cols-12 gap-5">
+    <section id="dailyPanel" class="xl:col-span-12 grid grid-cols-1 lg:grid-cols-3 gap-5">
+      <article class="glass-card p-5 lg:col-span-1 h-[560px] flex flex-col">
+        <div class="flex justify-between items-center mb-3 border-b border-slate-700 pb-2">
+          <h2 class="font-semibold text-white"><i class="fa-solid fa-list-check text-accentGold mr-2"></i>Routine (รายวัน)</h2>
+          <button id="resetDailyBtn" class="text-xs text-accentBlue hover:text-white">รีเซ็ตวันนี้</button>
+        </div>
+        <p class="text-xs text-slate-400 mb-3">ระบบรองรับการเพิ่ม Task ใหม่อัตโนมัติจากข้อมูล Excel เช่น Task 17, 18...</p>
+        <div id="routineList" class="overflow-auto pr-1 flex-1"></div>
+      </article>
+
+      <article class="glass-card p-5 lg:col-span-2 h-[560px] flex flex-col">
+        <div class="flex flex-wrap justify-between items-center gap-2 mb-3 border-b border-slate-700 pb-2">
+          <h2 class="font-semibold text-white"><i class="fa-solid fa-bolt text-accentGold mr-2"></i>Adhoc Monitoring</h2>
+          <span class="text-xs text-slate-300 bg-slate-800/70 px-2 py-1 rounded-md">Highlight: Warning (เหลือ ≤2 วัน) / Overdue</span>
+        </div>
+
+        <div class="overflow-auto flex-1">
+          <table class="w-full text-sm text-left">
+            <thead class="sticky top-0 bg-slate-900/90 text-slate-400 text-xs uppercase">
+              <tr>
+                <th class="px-3 py-3 rounded-tl-lg">งาน</th>
+                <th class="px-3 py-3">Owner</th>
+                <th class="px-3 py-3">Job Type</th>
+                <th class="px-3 py-3">Receive</th>
+                <th class="px-3 py-3">Deadline</th>
+                <th class="px-3 py-3">Actual Delivery</th>
+                <th class="px-3 py-3">Work Progress</th>
+                <th class="px-3 py-3 rounded-tr-lg">สถานะงาน</th>
+              </tr>
+            </thead>
+            <tbody id="adhocTable"></tbody>
+          </table>
+        </div>
+      </article>
+    </section>
+
+    <section id="monthlyPanel" class="xl:col-span-12 grid grid-cols-1 lg:grid-cols-3 gap-5 mt-5">
+      <article class="glass-card p-5 lg:col-span-2 h-[420px]">
+        <h2 class="font-semibold text-white mb-3 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-chart-column text-accentGold mr-2"></i>Monthly Summary (Success / Pending / Overdue)
+        </h2>
+        <div class="h-[340px]"><canvas id="monthlyChart"></canvas></div>
+      </article>
+
+      <article class="glass-card p-5 lg:col-span-1 h-[420px] flex flex-col">
+        <h2 class="font-semibold text-white mb-3 border-b border-slate-700 pb-2">
+          <i class="fa-solid fa-users text-accentGold mr-2"></i>Employee SLA
+        </h2>
+        <div id="slaList" class="overflow-auto pr-1 space-y-2"></div>
+      </article>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script>
+    const appState = {
+      selectedEmployee: 'all',
+      selectedCategory: 'all',
+      date: new Date(),
+      employees: [],
+      tasks: [],
+      monthlyChart: null,
+      dailyTrendChart: null,
+      uploadedPdfs: []
+    };
+
+    const graphConfig = {
+      enabled: false,
+      endpoint: '',
+      token: '',
+      worksheet: 'Tasks'
+    };
+
+    const brandingStorageKey = 'dashboardBranding';
+
+    const sampleTasks = [
+      { id: 1, title: 'ตรวจสอบยอดขายสาขา', ownerId: 'EMP001', ownerName: 'สมชาย ใจดี', jobType: 'Daily Ops', category: 'Routine', receiveDate: '2026-03-31', deadline: '2026-03-31', actualDelivery: '', status: 'pending', progress: 0, workStatus: 'not_started' },
+      { id: 2, title: 'สรุปรายงาน KPI รายวัน', ownerId: 'EMP002', ownerName: 'สมหญิง พัฒนา', jobType: 'Report', category: 'Routine', receiveDate: '2026-03-31', deadline: '2026-03-31', actualDelivery: '2026-03-31', status: 'success', progress: 100, workStatus: 'done' },
+      { id: 3, title: 'เตรียมไฟล์นำเสนอผู้บริหาร', ownerId: 'EMP001', ownerName: 'สมชาย ใจดี', jobType: 'Presentation', category: 'Adhoc', receiveDate: '2026-03-29', deadline: '2026-04-01', actualDelivery: '', status: 'pending', progress: 0, workStatus: 'not_started' },
+      { id: 4, title: 'อัปเดตคู่มือการทำงาน', ownerId: 'EMP003', ownerName: 'อนันต์ ทดสอบ', jobType: 'Documentation', category: 'Adhoc', receiveDate: '2026-03-25', deadline: '2026-03-28', actualDelivery: '', status: 'overdue', progress: 40, workStatus: 'in_progress' }
+    ];
+
+    const el = (id) => document.getElementById(id);
+    const fmtDate = (d) => new Date(d).toISOString().slice(0, 10);
+
+    function normalizeDate(value) {
+      if (!value) return '';
+      if (typeof value === 'number') {
+        const excelEpoch = new Date(Date.UTC(1899, 11, 30));
+        const dt = new Date(excelEpoch.getTime() + value * 86400000);
+        return fmtDate(dt);
+      }
+      const parsed = new Date(value);
+      return Number.isNaN(parsed.getTime()) ? '' : fmtDate(parsed);
+    }
+
+    function normalizeProgress(value) {
+      const num = Number(value);
+      if (Number.isNaN(num)) return 0;
+      return Math.max(0, Math.min(100, Math.round(num)));
+    }
+
+    function normalizeWorkStatus(value) {
+      const v = String(value || '').toLowerCase();
+      if (['not_started', 'in_progress', 'done'].includes(v)) return v;
+      if (v.includes('start')) return 'not_started';
+      if (v.includes('progress')) return 'in_progress';
+      if (v.includes('done') || v.includes('complete')) return 'done';
+      return 'not_started';
+    }
+
+    function workStatusLabel(v) {
+      if (v === 'done') return 'เสร็จแล้ว';
+      if (v === 'in_progress') return 'กำลังทำ';
+      return 'ยังไม่เริ่ม';
+    }
+
+    function loadBranding() {
+      const stored = JSON.parse(localStorage.getItem(brandingStorageKey) || '{}');
+      const companyName = stored.companyName || '';
+      const logoDataUrl = stored.logoDataUrl || '';
+
+      el('companyNameInput').value = companyName;
+      el('companyNameText').textContent = companyName || 'Your Company Name';
+
+      if (logoDataUrl) {
+        el('companyLogo').src = logoDataUrl;
+        el('companyLogo').classList.remove('hidden');
+        el('logoFallback').classList.add('hidden');
+      }
+    }
+
+    function saveBranding(partial) {
+      const current = JSON.parse(localStorage.getItem(brandingStorageKey) || '{}');
+      const next = { ...current, ...partial };
+      localStorage.setItem(brandingStorageKey, JSON.stringify(next));
+    }
+
+    function initializeData() {
+      appState.tasks = JSON.parse(localStorage.getItem('dashboardTasks') || 'null') || sampleTasks;
+      appState.employees = [...new Map(appState.tasks.map(t => [t.ownerId, { id: t.ownerId, name: t.ownerName }])).values()];
+      appState.date = new Date();
+      el('dateFilter').value = fmtDate(appState.date);
+      updateDateLabel();
+      loadBranding();
+      setupDropdowns();
+      renderAll();
+    }
+
+    function saveTasks() {
+      localStorage.setItem('dashboardTasks', JSON.stringify(appState.tasks));
+    }
+
+    function filteredTasks() {
+      const selectedDate = fmtDate(appState.date);
+      return appState.tasks.filter(task => {
+        if (appState.selectedEmployee !== 'all' && task.ownerId !== appState.selectedEmployee) return false;
+        if (appState.selectedCategory !== 'all' && task.category !== appState.selectedCategory) return false;
+        return task.receiveDate <= selectedDate;
+      });
+    }
+
+    function updateDateLabel() {
+      const text = appState.date.toLocaleDateString('th-TH', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+      el('currentDate').textContent = text;
+    }
+
+    function computeStatus(task) {
+      if (task.actualDelivery || normalizeProgress(task.progress) >= 100 || task.workStatus === 'done') return 'success';
+      const today = fmtDate(appState.date);
+      if (task.deadline < today) return 'overdue';
+      const diff = Math.ceil((new Date(task.deadline) - new Date(today)) / 86400000);
+      if (diff <= 2) return 'warning';
+      return 'pending';
+    }
+
+    function renderSummaryCards(tasks) {
+      const routine = tasks.filter(t => t.category === 'Routine');
+      const routineDone = routine.filter(t => computeStatus(t) === 'success').length;
+      const routinePercent = routine.length ? Math.round((routineDone / routine.length) * 100) : 0;
+      const pending = tasks.filter(t => computeStatus(t) === 'pending').length;
+      const warning = tasks.filter(t => computeStatus(t) === 'warning').length;
+      const overdue = tasks.filter(t => computeStatus(t) === 'overdue').length;
+
+      el('routinePercent').textContent = `${routinePercent}%`;
+      el('routineCount').textContent = `${routineDone}/${routine.length} งาน`;
+      el('routineBar').style.width = `${routinePercent}%`;
+      el('pendingCount').textContent = pending;
+      el('warningCount').textContent = warning;
+      el('overdueCount').textContent = overdue;
+    }
+
+    function renderRoutine(tasks) {
+      const list = el('routineList');
+      const routine = tasks.filter(t => t.category === 'Routine');
+      if (!routine.length) {
+        list.innerHTML = '<p class="text-sm text-slate-400">ยังไม่มีงาน Routine</p>';
+        return;
+      }
+      list.innerHTML = routine.map(task => {
+        const checked = computeStatus(task) === 'success' ? 'checked' : '';
+        return `<label class="flex items-center gap-3 p-2 mb-2 rounded-lg bg-slate-900/50 border border-slate-700/70">
+          <input type="checkbox" data-task-id="${task.id}" class="routine-check" ${checked}>
+          <div>
+            <p class="text-sm text-white">${task.title}</p>
+            <p class="text-xs text-slate-400">${task.ownerName} • Due ${task.deadline} • Progress ${normalizeProgress(task.progress)}% (${workStatusLabel(task.workStatus)})</p>
+          </div>
+        </label>`;
+      }).join('');
+
+      list.querySelectorAll('.routine-check').forEach(cb => {
+        cb.addEventListener('change', (e) => {
+          const id = Number(e.target.dataset.taskId);
+          const task = appState.tasks.find(t => t.id === id);
+          if (!task) return;
+          task.actualDelivery = e.target.checked ? fmtDate(appState.date) : '';
+          task.progress = e.target.checked ? 100 : 0;
+          task.workStatus = e.target.checked ? 'done' : 'not_started';
+          task.status = e.target.checked ? 'success' : 'pending';
+          saveTasks();
+          renderAll();
+        });
+      });
+    }
+
+    function renderAdhoc(tasks) {
+      const tbody = el('adhocTable');
+      const adhoc = tasks.filter(t => t.category === 'Adhoc');
+      if (!adhoc.length) {
+        tbody.innerHTML = '<tr><td colspan="8" class="px-3 py-4 text-center text-slate-400">ไม่พบงาน Adhoc</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = adhoc.map(t => {
+        const s = computeStatus(t);
+        const canEdit = true;
+        const statusBadge = s === 'success' ? 'text-emerald-300' : s === 'warning' ? 'text-yellow-300' : s === 'overdue' ? 'text-red-300' : 'text-slate-300';
+        return `<tr class="border-b border-slate-800/80">
+          <td class="px-3 py-2">${t.title}</td>
+          <td class="px-3 py-2">${t.ownerName}</td>
+          <td class="px-3 py-2">
+            <input type="text" value="${t.jobType || 'General'}" data-job-type-id="${t.id}" class="w-full bg-slate-900/80 border border-slate-700 rounded px-2 py-1 text-xs" ${canEdit ? '' : 'disabled'} />
+          </td>
+          <td class="px-3 py-2">${t.receiveDate}</td>
+          <td class="px-3 py-2">${t.deadline}</td>
+          <td class="px-3 py-2">${t.actualDelivery || '-'}</td>
+          <td class="px-3 py-2 min-w-[180px]">
+            <div class="flex items-center gap-2">
+              <input type="number" min="0" max="100" value="${normalizeProgress(t.progress)}" data-progress-id="${t.id}" class="w-16 bg-slate-900/80 border border-slate-700 rounded px-2 py-1 text-xs" ${canEdit ? '' : 'disabled'} />
+              <span class="text-xs text-slate-300">%</span>
+            </div>
+          </td>
+          <td class="px-3 py-2 min-w-[150px]">
+            <select data-work-status-id="${t.id}" class="bg-slate-900/80 border border-slate-700 rounded px-2 py-1 text-xs" ${canEdit ? '' : 'disabled'}>
+              <option value="not_started" ${t.workStatus === 'not_started' ? 'selected' : ''}>ยังไม่เริ่ม</option>
+              <option value="in_progress" ${t.workStatus === 'in_progress' ? 'selected' : ''}>กำลังทำ</option>
+              <option value="done" ${t.workStatus === 'done' ? 'selected' : ''}>เสร็จแล้ว</option>
+            </select>
+            <div class="text-xs ${statusBadge} mt-1">${s}</div>
+          </td>
+        </tr>`;
+      }).join('');
+
+      tbody.querySelectorAll('[data-job-type-id]').forEach(inp => {
+        inp.addEventListener('change', (e) => {
+          const task = appState.tasks.find(x => x.id === Number(e.target.dataset.jobTypeId));
+          if (!task) return;
+          task.jobType = (e.target.value || 'General').trim() || 'General';
+          saveTasks();
+          renderAll();
+        });
+      });
+
+      tbody.querySelectorAll('[data-progress-id]').forEach(inp => {
+        inp.addEventListener('change', (e) => {
+          const task = appState.tasks.find(x => x.id === Number(e.target.dataset.progressId));
+          if (!task) return;
+          task.progress = normalizeProgress(e.target.value);
+          if (task.progress >= 100) {
+            task.workStatus = 'done';
+            task.actualDelivery ||= fmtDate(appState.date);
+          } else if (task.progress > 0) {
+            task.workStatus = 'in_progress';
+            task.actualDelivery = '';
+          } else {
+            task.workStatus = 'not_started';
+            task.actualDelivery = '';
+          }
+          saveTasks();
+          renderAll();
+        });
+      });
+
+      tbody.querySelectorAll('[data-work-status-id]').forEach(sel => {
+        sel.addEventListener('change', (e) => {
+          const task = appState.tasks.find(x => x.id === Number(e.target.dataset.workStatusId));
+          if (!task) return;
+          task.workStatus = e.target.value;
+          if (task.workStatus === 'done') {
+            task.progress = 100;
+            task.actualDelivery ||= fmtDate(appState.date);
+          } else if (task.workStatus === 'in_progress') {
+            task.progress = Math.max(1, normalizeProgress(task.progress));
+            task.actualDelivery = '';
+          } else {
+            task.progress = 0;
+            task.actualDelivery = '';
+          }
+          saveTasks();
+          renderAll();
+        });
+      });
+    }
+
+    function renderMonthly(tasks) {
+      const byEmployee = {};
+      tasks.forEach(t => {
+        byEmployee[t.ownerName] ||= { success: 0, pending: 0, overdue: 0 };
+        const s = computeStatus(t);
+        if (s === 'success') byEmployee[t.ownerName].success += 1;
+        else if (s === 'overdue') byEmployee[t.ownerName].overdue += 1;
+        else byEmployee[t.ownerName].pending += 1;
+      });
+      const labels = Object.keys(byEmployee);
+      const success = labels.map(l => byEmployee[l].success);
+      const pending = labels.map(l => byEmployee[l].pending);
+      const overdue = labels.map(l => byEmployee[l].overdue);
+
+      const ctx = el('monthlyChart');
+      if (appState.monthlyChart) appState.monthlyChart.destroy();
+      appState.monthlyChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels,
+          datasets: [
+            { label: 'Success', data: success, backgroundColor: '#10b981' },
+            { label: 'Pending', data: pending, backgroundColor: '#f59e0b' },
+            { label: 'Overdue', data: overdue, backgroundColor: '#ef4444' }
+          ]
+        },
+        options: { responsive: true, maintainAspectRatio: false }
+      });
+
+      const slaList = el('slaList');
+      slaList.innerHTML = labels.map(name => {
+        const total = byEmployee[name].success + byEmployee[name].pending + byEmployee[name].overdue;
+        const sla = total ? Math.round((byEmployee[name].success / total) * 100) : 0;
+        return `<div class="p-2 rounded-lg bg-slate-900/50 border border-slate-700/70">
+          <p class="text-sm text-white">${name}</p>
+          <p class="text-xs text-slate-400">SLA สำเร็จ ${sla}%</p>
+        </div>`;
+      }).join('') || '<p class="text-sm text-slate-400">ไม่มีข้อมูล</p>';
+    }
+
+    function renderDailyTrend() {
+      const labels = [];
+      const rates = [];
+      for (let i = 6; i >= 0; i -= 1) {
+        const dt = new Date(appState.date);
+        dt.setDate(dt.getDate() - i);
+        const dayKey = fmtDate(dt);
+        labels.push(dt.toLocaleDateString('th-TH', { day: '2-digit', month: 'short' }));
+
+        const dayTasks = filteredTasks().filter(t => t.receiveDate <= dayKey);
+        const done = dayTasks.filter(t => normalizeProgress(t.progress) >= 100 || (t.actualDelivery && t.actualDelivery <= dayKey)).length;
+        const percent = dayTasks.length ? Math.round((done / dayTasks.length) * 100) : 0;
+        rates.push(percent);
+      }
+
+      const ctx = el('dailyTrendChart');
+      if (appState.dailyTrendChart) appState.dailyTrendChart.destroy();
+      appState.dailyTrendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Progress %',
+            data: rates,
+            borderColor: '#38bdf8',
+            backgroundColor: 'rgba(56, 189, 248, 0.18)',
+            fill: true,
+            tension: 0.35,
+            pointRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { y: { min: 0, max: 100 } }
+        }
+      });
+    }
+
+    function renderAll() {
+      const tasks = filteredTasks();
+      renderSummaryCards(tasks);
+      renderRoutine(tasks);
+      renderAdhoc(tasks);
+      renderMonthly(tasks);
+      renderDailyTrend();
+    }
+
+    function setupDropdowns() {
+      appState.employees = [...new Map(appState.tasks.map(t => [t.ownerId, { id: t.ownerId, name: t.ownerName }])).values()];
+      const employeeSelect = el('employeeSelect');
+      employeeSelect.innerHTML = `<option value="all">พนักงานทั้งหมด</option>` +
+        appState.employees.map(emp => `<option value="${emp.id}">${emp.name}</option>`).join('');
+
+      const categorySelect = el('categorySelect');
+      categorySelect.innerHTML = `
+        <option value="all">ทุกหมวดงาน</option>
+        <option value="Routine">Routine</option>
+        <option value="Adhoc">Adhoc</option>
+      `;
+
+      employeeSelect.value = appState.selectedEmployee;
+      categorySelect.value = appState.selectedCategory;
+
+      employeeSelect.onchange = (e) => {
+        appState.selectedEmployee = e.target.value;
+        renderAll();
+      };
+      categorySelect.onchange = (e) => {
+        appState.selectedCategory = e.target.value;
+        renderAll();
+      };
+    }
+
+    function bindEvents() {
+      el('dateFilter').addEventListener('change', (e) => { appState.date = new Date(e.target.value); updateDateLabel(); renderAll(); });
+      el('prevDateBtn').addEventListener('click', () => { appState.date.setDate(appState.date.getDate() - 1); el('dateFilter').value = fmtDate(appState.date); updateDateLabel(); renderAll(); });
+      el('nextDateBtn').addEventListener('click', () => { appState.date.setDate(appState.date.getDate() + 1); el('dateFilter').value = fmtDate(appState.date); updateDateLabel(); renderAll(); });
+      el('resetDailyBtn').addEventListener('click', () => {
+        appState.tasks.forEach(t => { if (t.category === 'Routine') { t.actualDelivery = ''; t.progress = 0; t.workStatus = 'not_started'; } });
+        saveTasks();
+        renderAll();
+      });
+      el('syncNowBtn').addEventListener('click', syncFromGraph);
+      el('excelUpload').addEventListener('change', async (e) => {
+        const file = e.target.files?.[0];
+        if (file) await importExcel(file);
+        e.target.value = '';
+      });
+      el('pdfUpload').addEventListener('change', (e) => {
+        const files = [...(e.target.files || [])];
+        appState.uploadedPdfs.push(...files.map(f => ({ name: f.name, size: Math.round(f.size / 1024) })));
+        el('uploadedPdfList').innerHTML = appState.uploadedPdfs.map((f, i) => `<p><i class="fa-regular fa-file-pdf text-red-300 mr-1"></i>${i + 1}. ${f.name} (${f.size} KB)</p>`).join('');
+        e.target.value = '';
+      });
+
+      el('companyNameInput').addEventListener('input', (e) => {
+        const value = e.target.value.trimStart();
+        el('companyNameText').textContent = value || 'Your Company Name';
+        saveBranding({ companyName: value });
+      });
+      el('logoUpload').addEventListener('change', (e) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = () => {
+          const dataUrl = String(reader.result || '');
+          el('companyLogo').src = dataUrl;
+          el('companyLogo').classList.remove('hidden');
+          el('logoFallback').classList.add('hidden');
+          saveBranding({ logoDataUrl: dataUrl });
+        };
+        reader.readAsDataURL(file);
+      });
+      el('clearLogoBtn').addEventListener('click', () => {
+        el('companyLogo').src = '';
+        el('companyLogo').classList.add('hidden');
+        el('logoFallback').classList.remove('hidden');
+        saveBranding({ logoDataUrl: '' });
+      });
+    }
+
+    function parseExcelRows(rows) {
+      const required = ['title', 'ownerid', 'ownername', 'category', 'receivedate', 'deadline'];
+      const keys = Object.keys(rows[0] || {}).map(k => k.toLowerCase().replace(/\s+/g, ''));
+      if (!required.every(r => keys.includes(r))) {
+        alert('ไฟล์ Excel ต้องมีคอลัมน์: title, ownerId, ownerName, category, receiveDate, deadline (optional: actualDelivery, progress, workStatus)');
+        return;
+      }
+      const parsed = rows.map((r, idx) => ({
+        id: Date.now() + idx,
+        title: r.title || r.Title,
+        ownerId: (r.ownerId || r.OwnerId || '').toUpperCase(),
+        ownerName: r.ownerName || r.OwnerName || 'Unknown',
+        jobType: (r.jobType || r.JobType || 'General'),
+        category: (r.category || r.Category || 'Adhoc'),
+        receiveDate: normalizeDate(r.receiveDate || r.ReceiveDate),
+        deadline: normalizeDate(r.deadline || r.Deadline),
+        actualDelivery: normalizeDate(r.actualDelivery || r.ActualDelivery) || '',
+        progress: normalizeProgress(r.progress || r.Progress),
+        workStatus: normalizeWorkStatus(r.workStatus || r.WorkStatus),
+        status: 'pending'
+      }));
+      appState.tasks = parsed;
+      saveTasks();
+      setupDropdowns();
+      renderAll();
+      el('syncStatus').textContent = `นำเข้าข้อมูลสำเร็จ ${parsed.length} รายการ ณ ${new Date().toLocaleTimeString('th-TH')}`;
+    }
+
+    async function importExcel(file) {
+      const data = await file.arrayBuffer();
+      const wb = XLSX.read(data, { type: 'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+      if (!rows.length) return alert('ไม่พบข้อมูลในไฟล์');
+      parseExcelRows(rows);
+    }
+
+    async function syncFromGraph() {
+      if (!graphConfig.enabled || !graphConfig.endpoint) {
+        alert('ยังไม่ได้ตั้งค่า Graph endpoint ในโค้ด (graphConfig)');
+        return;
+      }
+      try {
+        const res = await fetch(graphConfig.endpoint, { headers: { Authorization: `Bearer ${graphConfig.token}` } });
+        const payload = await res.json();
+        const rows = payload.value || payload.rows || [];
+        if (!Array.isArray(rows) || !rows.length) throw new Error('no rows');
+        parseExcelRows(rows);
+      } catch (err) {
+        console.error(err);
+        alert('Sync ไม่สำเร็จ กรุณาตรวจสอบ Backend/Token');
+      }
+    }
+
+    initializeData();
+    bindEvents();
+  </script>
+</body>
+</html>
