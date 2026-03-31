@@ -43,6 +43,7 @@
       backdrop-filter: blur(10px);
       -webkit-backdrop-filter: blur(10px);
       border-radius: 1rem;
+      overflow: visible;
     }
 
     .chip {
@@ -122,7 +123,7 @@
     }
 
     .dropdown-wrap.open {
-      z-index: 200;
+      z-index: 3000;
     }
 
     .select-option {
@@ -273,7 +274,7 @@
     <div class="grid md:grid-cols-2 gap-3 text-xs">
       <div class="bg-slate-900/45 border border-slate-700 rounded-lg p-3">
         <p class="text-slate-200 font-medium mb-1">A) Excel 365 via Microsoft Graph (Recommended)</p>
-        <p class="text-slate-400">เชื่อมต่อ Excel Online/SharePoint/OneDrive ผ่าน Backend proxy ที่บริษัทลูกค้าดูแลเอง</p>
+        <p class="text-slate-400">เชื่อมต่อ Excel Online/SharePoint/OneDrive ผ่าน Backend proxy ท่บริษัทลูกค้าดูแลเอง</p>
       </div>
       <div class="bg-slate-900/45 border border-slate-700 rounded-lg p-3">
         <p class="text-slate-200 font-medium mb-1">B) Manual Import (Excel/CSV)</p>
@@ -316,7 +317,7 @@
     </div>
 
     <div class="glass-card p-4 border border-yellow-500/35">
-      <p class="text-xs text-slate-400">Deadline กล้ถึง (1-2 วัน)</p>
+      <p class="text-xs text-slate-400">Deadline ใกล้ถึง (1-2 วัน)</p>
       <h3 id="warningCount" class="text-3xl font-bold text-warningYellow mt-1">0</h3>
       <p class="text-xs text-yellow-300 mt-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i>ควรติดตาม</p>
     </div>
@@ -328,6 +329,13 @@
     </div>
   </section>
 
+  <section class="glass-card p-4 mb-6">
+    <div class="flex items-center justify-between mb-3 border-b border-slate-700 pb-2">
+      <h2 class="font-semibold text-white"><i class="fa-solid fa-chart-line text-accentGold mr-2"></i>กราฟความคืบหน้ารายวัน (7 วันล่าสุด)</h2>
+      <span class="text-xs text-slate-400">Daily Progress Trend</span>
+    </div>
+    <div class="h-[280px]"><canvas id="dailyTrendChart"></canvas></div>
+  </section>
   <main class="grid grid-cols-1 xl:grid-cols-12 gap-5">
     <section id="dailyPanel" class="xl:col-span-12 grid grid-cols-1 lg:grid-cols-3 gap-5">
       <article class="glass-card p-5 lg:col-span-1 h-[560px] flex flex-col">
@@ -392,6 +400,7 @@
       employees: [],
       tasks: [],
       monthlyChart: null,
+      dailyTrendChart: null,
       uploadedPdfs: []
     };
 
@@ -406,7 +415,7 @@
       { employeeId: 'MGR001', name: 'หัวหน้าทีม', role: 'executive', password: '123456' },
       { employeeId: 'EMP001', name: 'สมชาย ใจดี', role: 'staff', password: '123456' },
       { employeeId: 'EMP002', name: 'สมหญิง พัฒนา', role: 'staff', password: '123456' },
-      { employeeId: 'EMP003', name: 'อนันต์ ทดสอบ', role: 'staff', password: '123456' }
+      { employeeId: 'EMP003', name: 'อนันต์ ทดสอ', role: 'staff', password: '123456' }
     ];
 
     const sampleTasks = [
@@ -589,12 +598,52 @@
       }).join('') || '<p class="text-sm text-slate-400">ไม่มีข้อมูล</p>';
     }
 
+    function renderDailyTrend() {
+      const labels = [];
+      const rates = [];
+      for (let i = 6; i >= 0; i -= 1) {
+        const dt = new Date(appState.date);
+        dt.setDate(dt.getDate() - i);
+        const dayKey = fmtDate(dt);
+        labels.push(dt.toLocaleDateString('th-TH', { day: '2-digit', month: 'short' }));
+
+        const dayTasks = filteredTasks().filter(t => t.receiveDate <= dayKey);
+        const done = dayTasks.filter(t => t.actualDelivery && t.actualDelivery <= dayKey).length;
+        const percent = dayTasks.length ? Math.round((done / dayTasks.length) * 100) : 0;
+        rates.push(percent);
+      }
+
+      const ctx = el('dailyTrendChart');
+      if (appState.dailyTrendChart) appState.dailyTrendChart.destroy();
+      appState.dailyTrendChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels,
+          datasets: [{
+            label: 'Progress %',
+            data: rates,
+            borderColor: '#38bdf8',
+            backgroundColor: 'rgba(56, 189, 248, 0.18)',
+            fill: true,
+            tension: 0.35,
+            pointRadius: 3
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          scales: { y: { min: 0, max: 100 } }
+        }
+      });
+    }
+
     function renderAll() {
       const tasks = filteredTasks();
       renderSummaryCards(tasks);
       renderRoutine(tasks);
       renderAdhoc(tasks);
       renderMonthly(tasks);
+      renderDailyTrend();
       applyViewMode();
       applyRoleMode();
     }
@@ -661,18 +710,41 @@
       el('categorySelectedLabel').textContent = cat;
     }
 
+    function positionPortalMenu(menu, trigger) {
+      const rect = trigger.getBoundingClientRect();
+      menu.classList.add('portal');
+      menu.style.left = `${rect.left}px`;
+      menu.style.top = `${rect.bottom + 8}px`;
+      menu.style.width = `${rect.width}px`;
+    }
+
     function toggleMenu(id) {
       const menu = el(id);
+      const triggerId = id === 'employeeMenu' ? 'employeeTrigger' : 'categoryTrigger';
+      const wrap = el(triggerId).closest('.dropdown-wrap');
       const show = !menu.classList.contains('show');
       closeMenus();
-      if (show) menu.classList.add('show');
+      if (show) {
+        wrap.classList.add('open');
+        menu.classList.add('show');
+        positionPortalMenu(menu, el(triggerId));
+      }
     }
     function closeMenus() {
-      ['employeeMenu', 'categoryMenu'].forEach(id => el(id).classList.remove('show'));
+      ['employeeMenu', 'categoryMenu'].forEach(id => {
+        const menu = el(id);
+        menu.classList.remove('show', 'portal');
+        menu.style.left = '';
+        menu.style.top = '';
+        menu.style.width = '';
+      });
+      document.querySelectorAll('.dropdown-wrap.open').forEach(w => w.classList.remove('open'));
     }
     document.addEventListener('click', (e) => {
       if (!e.target.closest('.dropdown-wrap')) closeMenus();
     });
+    window.addEventListener('resize', closeMenus);
+    window.addEventListener('scroll', closeMenus, true);
 
     function populateSelfFilter() {
       const select = el('selfFilter');
@@ -737,7 +809,7 @@
       saveTasks();
       setupDropdowns();
       renderAll();
-      el('syncStatus').textContent = `นำเข้าข้อมูลสำเร็จ ${parsed.length} ราการ ณ ${new Date().toLocaleTimeString('th-TH')}`;
+      el('syncStatus').textContent = `นำเข้าข้อมูลสำเร็จ ${parsed.length} รายการ ณ ${new Date().toLocaleTimeString('th-TH')}`;
     }
 
     async function importExcel(file) {
