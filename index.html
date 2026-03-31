@@ -214,24 +214,18 @@
     <div class="w-full xl:w-auto grid sm:grid-cols-2 xl:grid-cols-5 gap-3">
       <div class="glass-card px-3 py-2">
         <label class="text-xs text-slate-400 block mb-1">พนักงาน (Master Data)</label>
-        <div class="dropdown-wrap" data-dropdown="employee">
-          <button type="button" id="employeeTrigger" class="select-trigger">
-            <span id="employeeSelectedLabel">พนักงานทั้งหมด</span>
-            <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>
-          </button>
-          <div id="employeeMenu" class="select-menu"></div>
-        </div>
+        <select id="employeeSelect" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
+          <option value="all">พนักงานทั้งหมด</option>
+        </select>
       </div>
 
       <div class="glass-card px-3 py-2">
         <label class="text-xs text-slate-400 block mb-1">หมวดงาน (Job Category)</label>
-        <div class="dropdown-wrap" data-dropdown="category">
-          <button type="button" id="categoryTrigger" class="select-trigger">
-            <span id="categorySelectedLabel">ทุกหมวดงาน</span>
-            <i class="fa-solid fa-chevron-down text-xs text-slate-400"></i>
-          </button>
-          <div id="categoryMenu" class="select-menu"></div>
-        </div>
+        <select id="categorySelect" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
+          <option value="all">ทุกหมวดงาน</option>
+          <option value="Routine">Routine</option>
+          <option value="Adhoc">Adhoc</option>
+        </select>
       </div>
 
       <div class="glass-card px-3 py-2">
@@ -319,7 +313,7 @@
     <div class="glass-card p-4 border border-yellow-500/35">
       <p class="text-xs text-slate-400">Deadline ใกล้ถึง (1-2 วัน)</p>
       <h3 id="warningCount" class="text-3xl font-bold text-warningYellow mt-1">0</h3>
-      <p class="text-xs text-yellow-300 mt-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i>ควริดตาม</p>
+      <p class="text-xs text-yellow-300 mt-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i>ควรติดตาม</p>
     </div>
 
     <div class="glass-card p-4 border border-dangerRed/45">
@@ -700,77 +694,35 @@
 
     function setupDropdowns() {
       appState.employees = [...new Map(appState.tasks.map(t => [t.ownerId, { id: t.ownerId, name: t.ownerName }])).values()];
-      const employeeMenu = el('employeeMenu');
-      employeeMenu.innerHTML = `<button class="select-option ${appState.selectedEmployee === 'all' ? 'selected' : ''}" data-value="all">พนักงานทั้งหมด <i class="fa-solid fa-check check-icon"></i></button>` +
-        appState.employees.map(emp => `<button class="select-option ${appState.selectedEmployee === emp.id ? 'selected' : ''}" data-value="${emp.id}">${emp.name}<i class="fa-solid fa-check check-icon"></i></button>`).join('');
+      const employeeSelect = el('employeeSelect');
+      employeeSelect.innerHTML = `<option value="all">พนักงานทั้งหมด</option>` +
+        appState.employees.map(emp => `<option value="${emp.id}">${emp.name}</option>`).join('');
 
-      const categories = ['all', 'Routine', 'Adhoc'];
-      const categoryMenu = el('categoryMenu');
-      categoryMenu.innerHTML = categories.map(c => {
-        const txt = c === 'all' ? 'ทุกหมวดงาน' : c;
-        return `<button class="select-option ${appState.selectedCategory === c ? 'selected' : ''}" data-value="${c}">${txt}<i class="fa-solid fa-check check-icon"></i></button>`;
-      }).join('');
+      const categorySelect = el('categorySelect');
+      categorySelect.innerHTML = `
+        <option value="all">ทุกหมวดงาน</option>
+        <option value="Routine">Routine</option>
+        <option value="Adhoc">Adhoc</option>
+      `;
 
-      employeeMenu.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
-        appState.selectedEmployee = btn.dataset.value;
-        closeMenus();
-        updateDropdownLabels();
+      employeeSelect.value = appState.selectedEmployee;
+      categorySelect.value = appState.selectedCategory;
+
+      employeeSelect.onchange = (e) => {
+        appState.selectedEmployee = e.target.value;
         renderAll();
-      }));
-      categoryMenu.querySelectorAll('button').forEach(btn => btn.addEventListener('click', () => {
-        appState.selectedCategory = btn.dataset.value;
-        closeMenus();
-        updateDropdownLabels();
+      };
+      categorySelect.onchange = (e) => {
+        appState.selectedCategory = e.target.value;
         renderAll();
-      }));
-
-      el('employeeTrigger').onclick = () => toggleMenu('employeeMenu');
-      el('categoryTrigger').onclick = () => toggleMenu('categoryMenu');
-      updateDropdownLabels();
+      };
     }
 
     function updateDropdownLabels() {
-      const emp = appState.selectedEmployee === 'all' ? 'พนักงานทั้งหมด' : (appState.employees.find(e => e.id === appState.selectedEmployee)?.name || 'พนักงานทั้งหมด');
-      const cat = appState.selectedCategory === 'all' ? 'ทุกหมวดงาน' : appState.selectedCategory;
-      el('employeeSelectedLabel').textContent = emp;
-      el('categorySelectedLabel').textContent = cat;
+      if (el('employeeSelect')) el('employeeSelect').value = appState.selectedEmployee;
+      if (el('categorySelect')) el('categorySelect').value = appState.selectedCategory;
     }
 
-    function positionPortalMenu(menu, trigger) {
-      const rect = trigger.getBoundingClientRect();
-      menu.classList.add('portal');
-      menu.style.left = `${rect.left}px`;
-      menu.style.top = `${rect.bottom + 8}px`;
-      menu.style.width = `${rect.width}px`;
-    }
-
-    function toggleMenu(id) {
-      const menu = el(id);
-      const triggerId = id === 'employeeMenu' ? 'employeeTrigger' : 'categoryTrigger';
-      const wrap = el(triggerId).closest('.dropdown-wrap');
-      const show = !menu.classList.contains('show');
-      closeMenus();
-      if (show) {
-        wrap.classList.add('open');
-        menu.classList.add('show');
-        positionPortalMenu(menu, el(triggerId));
-      }
-    }
-    function closeMenus() {
-      ['employeeMenu', 'categoryMenu'].forEach(id => {
-        const menu = el(id);
-        menu.classList.remove('show', 'portal');
-        menu.style.left = '';
-        menu.style.top = '';
-        menu.style.width = '';
-      });
-      document.querySelectorAll('.dropdown-wrap.open').forEach(w => w.classList.remove('open'));
-    }
-    document.addEventListener('click', (e) => {
-      if (!e.target.closest('.dropdown-wrap')) closeMenus();
-    });
-    window.addEventListener('resize', closeMenus);
-    window.addEventListener('scroll', closeMenus, true);
 
     function populateSelfFilter() {
       const select = el('selfFilter');
