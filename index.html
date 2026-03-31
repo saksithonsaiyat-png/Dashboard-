@@ -274,7 +274,7 @@
     <div class="grid md:grid-cols-2 gap-3 text-xs">
       <div class="bg-slate-900/45 border border-slate-700 rounded-lg p-3">
         <p class="text-slate-200 font-medium mb-1">A) Excel 365 via Microsoft Graph (Recommended)</p>
-        <p class="text-slate-400">เชื่อมต่อ Excel Online/SharePoint/OneDrive ผ่าน Backend proxy ท่บริษัทลูกค้าดูแลเอง</p>
+        <p class="text-slate-400">เชื่อมต่อ Excel Online/SharePoint/OneDrive ผ่าน Backend proxy ที่บริษัทลูกค้าดูแลเอง</p>
       </div>
       <div class="bg-slate-900/45 border border-slate-700 rounded-lg p-3">
         <p class="text-slate-200 font-medium mb-1">B) Manual Import (Excel/CSV)</p>
@@ -319,7 +319,7 @@
     <div class="glass-card p-4 border border-yellow-500/35">
       <p class="text-xs text-slate-400">Deadline ใกล้ถึง (1-2 วัน)</p>
       <h3 id="warningCount" class="text-3xl font-bold text-warningYellow mt-1">0</h3>
-      <p class="text-xs text-yellow-300 mt-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i>ควรติดตาม</p>
+      <p class="text-xs text-yellow-300 mt-1"><i class="fa-solid fa-triangle-exclamation mr-1"></i>ควริดตาม</p>
     </div>
 
     <div class="glass-card p-4 border border-dangerRed/45">
@@ -328,6 +328,7 @@
       <p class="text-xs text-red-300 mt-1"><i class="fa-solid fa-bell mr-1"></i>ต้องเร่งด่วน</p>
     </div>
   </section>
+
 
   <section class="glass-card p-4 mb-6">
     <div class="flex items-center justify-between mb-3 border-b border-slate-700 pb-2">
@@ -411,11 +412,13 @@
       worksheet: 'Tasks'
     };
 
+    const brandingStorageKey = 'dashboardBranding';
+
     const userDirectory = [
       { employeeId: 'MGR001', name: 'หัวหน้าทีม', role: 'executive', password: '123456' },
       { employeeId: 'EMP001', name: 'สมชาย ใจดี', role: 'staff', password: '123456' },
       { employeeId: 'EMP002', name: 'สมหญิง พัฒนา', role: 'staff', password: '123456' },
-      { employeeId: 'EMP003', name: 'อนันต์ ทดสอ', role: 'staff', password: '123456' }
+      { employeeId: 'EMP003', name: 'อนันต์ ทดสอบ', role: 'staff', password: '123456' }
     ];
 
     const sampleTasks = [
@@ -439,12 +442,34 @@
       return Number.isNaN(parsed.getTime()) ? '' : fmtDate(parsed);
     }
 
+    function loadBranding() {
+      const stored = JSON.parse(localStorage.getItem(brandingStorageKey) || '{}');
+      const companyName = stored.companyName || '';
+      const logoDataUrl = stored.logoDataUrl || '';
+
+      el('companyNameInput').value = companyName;
+      el('companyNameText').textContent = companyName || 'Your Company Name';
+
+      if (logoDataUrl) {
+        el('companyLogo').src = logoDataUrl;
+        el('companyLogo').classList.remove('hidden');
+        el('logoFallback').classList.add('hidden');
+      }
+    }
+
+    function saveBranding(partial) {
+      const current = JSON.parse(localStorage.getItem(brandingStorageKey) || '{}');
+      const next = { ...current, ...partial };
+      localStorage.setItem(brandingStorageKey, JSON.stringify(next));
+    }
+
     function initializeData() {
       appState.tasks = JSON.parse(localStorage.getItem('dashboardTasks') || 'null') || sampleTasks;
       appState.employees = [...new Map(appState.tasks.map(t => [t.ownerId, { id: t.ownerId, name: t.ownerName }])).values()];
       appState.date = new Date();
       el('dateFilter').value = fmtDate(appState.date);
       updateDateLabel();
+      loadBranding();
       setupDropdowns();
       populateSelfFilter();
       renderAll();
@@ -597,6 +622,7 @@
         </div>`;
       }).join('') || '<p class="text-sm text-slate-400">ไม่มีข้อมูล</p>';
     }
+
 
     function renderDailyTrend() {
       const labels = [];
@@ -876,16 +902,20 @@
       });
 
       el('companyNameInput').addEventListener('input', (e) => {
-        el('companyNameText').textContent = e.target.value || 'Your Company Name';
+        const value = e.target.value.trimStart();
+        el('companyNameText').textContent = value || 'Your Company Name';
+        saveBranding({ companyName: value });
       });
       el('logoUpload').addEventListener('change', (e) => {
         const file = e.target.files?.[0];
         if (!file) return;
         const reader = new FileReader();
         reader.onload = () => {
-          el('companyLogo').src = reader.result;
+          const dataUrl = String(reader.result || '');
+          el('companyLogo').src = dataUrl;
           el('companyLogo').classList.remove('hidden');
           el('logoFallback').classList.add('hidden');
+          saveBranding({ logoDataUrl: dataUrl });
         };
         reader.readAsDataURL(file);
       });
@@ -893,6 +923,7 @@
         el('companyLogo').src = '';
         el('companyLogo').classList.add('hidden');
         el('logoFallback').classList.remove('hidden');
+        saveBranding({ logoDataUrl: '' });
       });
     }
 
