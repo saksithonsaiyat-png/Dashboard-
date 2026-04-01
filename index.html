@@ -6,6 +6,7 @@
   <title>Executive Task Dashboard</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <!-- SheetJS สำหรับอ่านไฟล์ Excel -->
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <style>
@@ -14,6 +15,7 @@
         radial-gradient(circle at top right, rgba(216,180,254,.30), transparent 42%),
         radial-gradient(circle at bottom left, rgba(196,181,253,.25), transparent 38%),
         linear-gradient(145deg, #29143d 0%, #1f2148 48%, #15233f 100%);
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     .glass-card {
       background: rgba(15, 23, 42, 0.76);
@@ -27,14 +29,21 @@
       padding: .35rem .8rem;
       font-size: .75rem;
       color: #cbd5e1;
+      transition: all 0.2s;
     }
-    .chip:hover { border-color: rgba(56,189,248,.7); color: #e2e8f0; }
+    .chip:hover { border-color: rgba(56,189,248,.7); color: #e2e8f0; background: rgba(255,255,255,0.05); }
     details summary::-webkit-details-marker { display: none; }
+    
+    /* Custom Scrollbar */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+    ::-webkit-scrollbar-thumb { background: rgba(148, 163, 184, 0.3); border-radius: 10px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(148, 163, 184, 0.6); }
   </style>
 </head>
-<body class="text-slate-200 min-h-screen p-4 md:p-6 lg:p-8 font-sans">
+<body class="text-slate-200 min-h-screen p-4 md:p-6 lg:p-8">
 
-<header class="flex flex-col xl:flex-row gap-4 xl:items-end xl:justify-between mb-6">
+<header class="flex flex-col xl:flex-row gap-4 xl:items-end xl:justify-between mb-4">
   <div>
     <div class="flex flex-wrap items-center gap-3 mb-3">
       <div class="w-12 h-12 rounded-xl border border-slate-500/40 bg-slate-900/60 flex items-center justify-center overflow-hidden">
@@ -42,7 +51,7 @@
         <i id="logoFallback" class="fa-regular fa-building text-lg text-yellow-400"></i>
       </div>
       <div>
-        <p class="text-xs text-slate-400">Company</p>
+        <p class="text-xs text-slate-400">Company / Organization</p>
         <h2 id="companyNameText" class="text-lg font-semibold text-white">Your Company Name</h2>
       </div>
     </div>
@@ -52,30 +61,29 @@
       <input id="logoUpload" type="file" accept="image/*" class="hidden" />
       <button id="clearLogoBtn" type="button" class="chip">ล้างโลโก้</button>
     </div>
-    <h1 class="text-2xl md:text-3xl font-bold text-white tracking-wide"><i class="fa-solid fa-gauge-high text-yellow-400 mr-2"></i>Executive Task Dashboard</h1>
-    <p class="text-slate-400 text-sm mt-1">รองรับ Routine แยกตาม Job + Expand รายการ Task ในแต่ละ Job</p>
+    <h1 class="text-2xl md:text-3xl font-bold text-white tracking-wide"><i class="fa-solid fa-gauge-high text-sky-400 mr-2"></i>Executive Task Dashboard</h1>
   </div>
 
   <div class="w-full xl:w-auto grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
     <div class="glass-card px-3 py-2">
       <label class="text-xs text-slate-400 block mb-1">พนักงาน</label>
-      <select id="employeeSelect" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2.5 text-sm"></select>
+      <select id="employeeSelect" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-sky-500"></select>
     </div>
     <div class="glass-card px-3 py-2">
       <label class="text-xs text-slate-400 block mb-1">หมวดงาน</label>
-      <select id="categorySelect" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
+      <select id="categorySelect" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-sky-500">
         <option value="all">ทุกหมวดงาน</option><option value="Routine">Routine</option><option value="Adhoc">Adhoc</option>
       </select>
     </div>
     <div class="glass-card px-3 py-2">
       <label class="text-xs text-slate-400 block mb-1">ประเภทงาน (Job Type)</label>
-      <select id="jobTypeSelect" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2.5 text-sm"></select>
+      <select id="jobTypeSelect" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2.5 text-sm outline-none focus:border-sky-500"></select>
     </div>
     <div class="glass-card px-3 py-2">
-      <p class="text-xs text-slate-400 mb-1">วันที่ใช้งาน</p>
+      <p class="text-xs text-slate-400 mb-1">วันที่ต้องการดูข้อมูล</p>
       <div class="flex items-center gap-2 mb-2">
         <button id="prevDateBtn" class="chip !py-1 !px-2"><i class="fa-solid fa-chevron-left"></i></button>
-        <input id="dateFilter" type="date" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-2 py-1.5 text-sm" />
+        <input id="dateFilter" type="date" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-2 py-1.5 text-sm outline-none focus:border-sky-500" />
         <button id="nextDateBtn" class="chip !py-1 !px-2"><i class="fa-solid fa-chevron-right"></i></button>
       </div>
       <p id="currentDate" class="text-xs text-slate-300"></p>
@@ -83,118 +91,282 @@
   </div>
 </header>
 
-<section class="glass-card p-4 mb-6">
-  <div class="flex flex-wrap justify-between gap-2 mb-3">
-    <h3 class="text-sm font-semibold text-white"><i class="fa-solid fa-file-excel text-emerald-400 mr-2"></i>Excel Design (ตอบโจทย์ Routine รายวัน)</h3>
-    <div class="flex gap-2">
-      <label class="chip cursor-pointer"><i class="fa-solid fa-upload mr-1"></i>Import Excel<input id="excelUpload" type="file" accept=".xlsx,.xls,.csv" class="hidden" /></label>
-      <button id="downloadTemplateBtn" class="chip">ดาวน์โหลดตัวอย่าง CSV</button>
-    </div>
-  </div>
-  <div class="grid md:grid-cols-2 gap-3 text-xs">
-    <div class="bg-slate-900/45 border border-slate-700 rounded-lg p-3">
-      <p class="text-slate-200 font-medium mb-1">คอลัมน์ที่แนะนำ (Routine)</p>
-      <p class="text-slate-400">category, planDate, jobName, taskName, required(Yes/No), ownerId, ownerName, deadline, progress, workStatus</p>
-      <p class="text-slate-400 mt-1">ถ้าวันไหนไม่ต้องทำ task ให้ใส่ required = No แล้ว dashboard จะไม่แสดงงานนั้นในวันนั้น</p>
-    </div>
-    <div class="bg-slate-900/45 border border-slate-700 rounded-lg p-3">
-      <p class="text-slate-200 font-medium mb-1">คอลัมน์ที่แนะนำ (Adhoc)</p>
-      <p class="text-slate-400">category, title, ownerId, ownerName, jobType, receiveDate, deadline, progress, workStatus, actualDelivery</p>
-      <p class="text-slate-400 mt-1">งาน Adhoc ใช้ title เป็นชื่อหลัก และติดตาม warning/overdue จาก deadline</p>
-    </div>
-  </div>
-</section>
+<!-- Action Buttons -->
+<div class="flex flex-wrap gap-3 mb-6 items-center justify-end">
+  <button onclick="document.getElementById('instructionsModal').showModal()" class="chip bg-sky-900/40 border-sky-500/50 text-sky-200 hover:bg-sky-800/60 font-medium">
+    <i class="fa-solid fa-book mr-1"></i> คู่มือ & โค้ดเชื่อมต่อ Excel 365
+  </button>
+  <button id="downloadTemplateBtn" class="chip bg-slate-800 hover:bg-slate-700">
+    <i class="fa-solid fa-download mr-1"></i> โหลดตัวอย่าง CSV
+  </button>
+  <label class="chip cursor-pointer bg-emerald-900/40 border-emerald-500/50 text-emerald-200 hover:bg-emerald-800/60 font-medium">
+    <i class="fa-solid fa-file-excel mr-1"></i> อัปโหลดไฟล์ Excel / CSV อัปเดตงาน
+    <input id="excelUpload" type="file" accept=".xlsx,.xls,.csv" class="hidden" />
+  </label>
+</div>
 
+<!-- Key Metrics -->
 <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
-  <div class="glass-card p-4"><p class="text-xs text-slate-400">Routine Completion (Selected Date)</p><h3 id="routinePercent" class="text-3xl font-bold text-white mt-1">0%</h3><p id="routineCount" class="text-xs text-slate-400 mt-1">0/0 งาน</p></div>
-  <div class="glass-card p-4"><p class="text-xs text-slate-400">Adhoc Pending</p><h3 id="pendingCount" class="text-3xl font-bold text-white mt-1">0</h3></div>
-  <div class="glass-card p-4 border border-yellow-500/35"><p class="text-xs text-slate-400">Deadline ใกล้ถึง (1-2 วัน)</p><h3 id="warningCount" class="text-3xl font-bold text-yellow-400 mt-1">0</h3></div>
-  <div class="glass-card p-4 border border-red-500/35"><p class="text-xs text-slate-400">Overdue</p><h3 id="overdueCount" class="text-3xl font-bold text-red-400 mt-1">0</h3></div>
+  <div class="glass-card p-4 relative overflow-hidden">
+    <div class="absolute right-0 top-0 h-full w-1 bg-emerald-500"></div>
+    <p class="text-xs text-slate-400">Routine Completion (Selected Date)</p>
+    <h3 id="routinePercent" class="text-3xl font-bold text-white mt-1">0%</h3>
+    <p id="routineCount" class="text-xs text-slate-400 mt-1">0/0 งาน</p>
+  </div>
+  <div class="glass-card p-4 relative overflow-hidden">
+    <div class="absolute right-0 top-0 h-full w-1 bg-sky-500"></div>
+    <p class="text-xs text-slate-400">Adhoc Pending (กำลังดำเนินการ)</p>
+    <h3 id="pendingCount" class="text-3xl font-bold text-white mt-1">0</h3>
+  </div>
+  <div class="glass-card p-4 border border-yellow-500/30 bg-yellow-900/10 relative overflow-hidden">
+    <div class="absolute right-0 top-0 h-full w-1 bg-yellow-500"></div>
+    <p class="text-xs text-slate-400">Deadline ใกล้ถึง (1-2 วัน)</p>
+    <h3 id="warningCount" class="text-3xl font-bold text-yellow-400 mt-1">0</h3>
+  </div>
+  <div class="glass-card p-4 border border-red-500/30 bg-red-900/10 relative overflow-hidden">
+    <div class="absolute right-0 top-0 h-full w-1 bg-red-500"></div>
+    <p class="text-xs text-slate-400">Overdue (เกินกำหนด)</p>
+    <h3 id="overdueCount" class="text-3xl font-bold text-red-400 mt-1">0</h3>
+  </div>
 </section>
 
+<!-- Trend Chart -->
 <section class="glass-card p-4 mb-6">
-  <h2 class="font-semibold text-white mb-3"><i class="fa-solid fa-chart-line text-yellow-400 mr-2"></i>กราฟความคืบหน้ารายวัน (7 วันล่าสุด)</h2>
-  <div class="h-[280px]"><canvas id="dailyTrendChart"></canvas></div>
+  <h2 class="font-semibold text-white mb-3"><i class="fa-solid fa-chart-line text-sky-400 mr-2"></i>ภาพรวมความคืบหน้ารายวัน (7 วันล่าสุด)</h2>
+  <div class="h-[280px] w-full"><canvas id="dailyTrendChart"></canvas></div>
 </section>
 
-<section class="grid grid-cols-1 gap-5">
-  <article class="glass-card p-5">
+<!-- Tasks & Monthly -->
+<section class="grid grid-cols-1 xl:grid-cols-2 gap-5 mb-10">
+  <article class="glass-card p-5 flex flex-col max-h-[600px]">
     <div class="flex justify-between items-center mb-3 border-b border-slate-700 pb-2">
-      <h2 class="font-semibold text-white"><i class="fa-solid fa-list-check text-yellow-400 mr-2"></i>Routine by Job (Expand Task ได้)</h2>
-      <button id="resetDailyBtn" class="text-xs text-sky-300 hover:text-white">รีเซ็ต Routine ของวันที่เลือก</button>
+      <h2 class="font-semibold text-white"><i class="fa-solid fa-list-check text-emerald-400 mr-2"></i>Routine Tasks (ประจำวัน)</h2>
+      <button id="resetDailyBtn" class="text-xs text-sky-300 hover:text-white" title="รีเซ็ตความคืบหน้าของวันนี้ให้เป็น 0">รีเซ็ต Routine วันนี้</button>
     </div>
-    <div id="routineList"></div>
+    <div id="routineList" class="overflow-y-auto pr-2 flex-1"></div>
   </article>
 
-  <article class="glass-card p-5">
-    <h2 class="font-semibold text-white mb-3 border-b border-slate-700 pb-2"><i class="fa-solid fa-bolt text-yellow-400 mr-2"></i>Adhoc Monitoring</h2>
-    <div class="overflow-auto">
-      <table class="w-full text-sm text-left">
-        <thead class="sticky top-0 bg-slate-900/90 text-slate-400 text-xs uppercase">
-          <tr><th class="px-3 py-3">งาน</th><th class="px-3 py-3">Owner</th><th class="px-3 py-3">Job Type</th><th class="px-3 py-3">Receive</th><th class="px-3 py-3">Deadline</th><th class="px-3 py-3">Progress</th><th class="px-3 py-3">สถานะ</th></tr>
-        </thead>
-        <tbody id="adhocTable"></tbody>
-      </table>
+  <article class="flex flex-col gap-5">
+    <div class="glass-card p-5 max-h-[350px] flex flex-col">
+      <h2 class="font-semibold text-white mb-3 border-b border-slate-700 pb-2"><i class="fa-solid fa-bolt text-yellow-400 mr-2"></i>Adhoc / Project Monitoring</h2>
+      <div class="overflow-auto flex-1 pr-2">
+        <table class="w-full text-sm text-left">
+          <thead class="sticky top-0 bg-slate-900/95 text-slate-400 text-xs uppercase shadow-md">
+            <tr><th class="px-3 py-3">งาน</th><th class="px-3 py-3 w-28">Owner</th><th class="px-3 py-3 w-24">Deadline</th><th class="px-3 py-3 w-32">Status</th></tr>
+          </thead>
+          <tbody id="adhocTable"></tbody>
+        </table>
+      </div>
     </div>
-  </article>
-
-  <article class="glass-card p-5 h-[420px]">
-    <h2 class="font-semibold text-white mb-3 border-b border-slate-700 pb-2"><i class="fa-solid fa-chart-column text-yellow-400 mr-2"></i>Monthly Summary</h2>
-    <div class="h-[330px]"><canvas id="monthlyChart"></canvas></div>
+    
+    <div class="glass-card p-5 flex-1 min-h-[230px]">
+      <h2 class="font-semibold text-white mb-3 border-b border-slate-700 pb-2"><i class="fa-solid fa-chart-column text-purple-400 mr-2"></i>Workload Status by Person</h2>
+      <div class="h-[150px] sm:h-[180px]"><canvas id="monthlyChart"></canvas></div>
+    </div>
   </article>
 </section>
+
+<!-- ================= MODAL: INSTRUCTIONS & SCRIPT ================= -->
+<dialog id="instructionsModal" class="bg-slate-900 border border-slate-600 rounded-xl p-0 text-slate-200 w-11/12 max-w-4xl shadow-2xl backdrop:bg-black/70">
+  <div class="flex justify-between items-center bg-slate-800 p-4 border-b border-slate-700">
+    <h2 class="text-xl font-bold text-white"><i class="fa-solid fa-book text-sky-400 mr-2"></i>คู่มือการใช้งาน & การเชื่อมต่อหลังบ้าน</h2>
+    <button onclick="document.getElementById('instructionsModal').close()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
+  </div>
+  
+  <div class="p-6 overflow-y-auto max-h-[75vh] space-y-6 text-sm">
+    
+    <!-- Section 1: How it works -->
+    <div>
+      <h3 class="text-lg font-semibold text-emerald-400 mb-2">1. การทำงานของระบบ (How it works)</h3>
+      <ul class="list-disc pl-5 space-y-1 text-slate-300">
+        <li>ระบบนี้สามารถ <b>อัปโหลดไฟล์ Excel / CSV</b> เข้ามาเพื่อคำนวณ Progress ของงานแบบอัตโนมัติ</li>
+        <li><b>Routine (งานประจำ):</b> ระบบจะกรองจากวันที่ (Plan Date) ถ้าระบุว่า `required = false` (หรือ No) งานนั้นจะไม่แสดงในวันนั้น</li>
+        <li><b>Adhoc (งานโปรเจค/สั่งการ):</b> ระบบจะติดตามจาก `deadline` และคำนวณสถานะ Overdue (เลยกำหนด) หรือ Warning (ใกล้ถึงกำหนด 1-2 วัน)</li>
+        <li>เมื่อแก้ไข Progress (1-100%) หรือติ๊กถูกว่าเสร็จแล้วบนหน้าเว็บ ระบบจะปรับสถานะให้และกราฟจะอัปเดตทันที</li>
+      </ul>
+    </div>
+
+    <!-- Section 2: Excel Columns -->
+    <div>
+      <h3 class="text-lg font-semibold text-yellow-400 mb-2">2. วิธีตั้งชื่อหัวคอลัมน์ใน Excel (จำเป็น)</h3>
+      <p class="mb-2 text-slate-300">เพื่อให้สคริปต์อ่านค่าได้ถูกต้อง แถวแรกของ Excel ต้องมีชื่อคอลัมน์ดังนี้ (ตัวพิมพ์เล็กหรือใหญ่ก็ได้):</p>
+      <div class="overflow-x-auto border border-slate-700 rounded-lg">
+        <table class="w-full text-left bg-slate-800/50">
+          <thead class="bg-slate-700 text-slate-200">
+            <tr><th class="p-2">ชื่อคอลัมน์</th><th class="p-2">ความหมาย / ตัวอย่างข้อมูล</th></tr>
+          </thead>
+          <tbody class="divide-y divide-slate-700 text-slate-300">
+            <tr><td class="p-2 font-mono text-sky-300">category</td><td class="p-2">ใส่คำว่า <code class="bg-slate-900 px-1 rounded">Routine</code> หรือ <code class="bg-slate-900 px-1 rounded">Adhoc</code></td></tr>
+            <tr><td class="p-2 font-mono text-sky-300">planDate</td><td class="p-2">วันที่ต้องทำ (สำหรับ Routine) รูปแบบ YYYY-MM-DD เช่น <code class="bg-slate-900 px-1 rounded">2026-04-01</code></td></tr>
+            <tr><td class="p-2 font-mono text-sky-300">jobName</td><td class="p-2">ชื่อกลุ่มงาน เช่น <code class="bg-slate-900 px-1 rounded">Finance</code>, <code class="bg-slate-900 px-1 rounded">IT Support</code></td></tr>
+            <tr><td class="p-2 font-mono text-sky-300">taskName</td><td class="p-2">ชื่องาน (หรือใช้คอลัมน์ title สำหรับ Adhoc ก็ได้)</td></tr>
+            <tr><td class="p-2 font-mono text-sky-300">required</td><td class="p-2">เฉพาะ Routine วันนี้ต้องทำไหม? ใส่ <code class="bg-slate-900 px-1 rounded">Yes</code> หรือ <code class="bg-slate-900 px-1 rounded">No</code></td></tr>
+            <tr><td class="p-2 font-mono text-sky-300">ownerName</td><td class="p-2">ชื่อผู้รับผิดชอบงาน เช่น สมชาย ใจดี</td></tr>
+            <tr><td class="p-2 font-mono text-sky-300">deadline</td><td class="p-2">กำหนดส่งงาน (สำหรับ Adhoc) รูปแบบ YYYY-MM-DD</td></tr>
+            <tr><td class="p-2 font-mono text-sky-300">progress</td><td class="p-2">ความคืบหน้า 0 ถึง 100 (ใส่เป็นตัวเลข)</td></tr>
+            <tr><td class="p-2 font-mono text-sky-300">workStatus</td><td class="p-2">สถานะงาน <code class="bg-slate-900 px-1 rounded">not_started</code>, <code class="bg-slate-900 px-1 rounded">in_progress</code>, <code class="bg-slate-900 px-1 rounded">done</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Section 3: Office Script -->
+    <div>
+      <h3 class="text-lg font-semibold text-purple-400 mb-2">3. สคริปต์เชื่อมต่อหลังบ้าน (Excel 365 Office Script)</h3>
+      <p class="mb-2 text-slate-300">หากลูกค้าต้องการนำ Dashboard นี้ไปฝังใน Sharepoint หรือต่อ API อัตโนมัติ สามารถใช้ <b>Power Automate</b> ร่วมกับ <b>Office Scripts</b> ด้านล่างนี้ โดยนำไปสร้างในเมนู Automate บน Excel 365</p>
+      
+      <div class="relative bg-[#1e1e1e] rounded-lg border border-slate-700 overflow-hidden">
+        <div class="bg-slate-800 text-xs text-slate-400 p-2 border-b border-slate-700 flex justify-between">
+          <span>getTasksData.ts (Office Script)</span>
+          <button onclick="navigator.clipboard.writeText(document.getElementById('officeScriptCode').innerText); alert('Copied!');" class="hover:text-white"><i class="fa-regular fa-copy"></i> Copy</button>
+        </div>
+        <pre class="p-4 overflow-x-auto text-sky-200 text-xs font-mono" id="officeScriptCode">
+function main(workbook: ExcelScript.Workbook): string {
+  // 1. ดึง Sheet ที่ชื่อ "Tasks" หรือดึง Sheet แรก
+  let sheet = workbook.getWorksheet("Tasks") || workbook.getWorksheets()[0];
+  
+  // 2. ดึง Table ตัวแรกใน Sheet
+  let table = sheet.getTables()[0];
+  if (!table) return JSON.stringify({ error: "No table found in the sheet" });
+
+  // 3. อ่านหัวคอลัมน์ และ ข้อมูล
+  let headerRange = table.getHeaderRowRange().getValues()[0];
+  let dataRange = table.getRangeBetweenHeaderAndTotal().getValues();
+
+  let tasks = [];
+
+  // 4. แปลงข้อมูลแถวให้เป็น JSON Object
+  for (let i = 0; i < dataRange.length; i++) {
+    let row = dataRange[i];
+    let taskObj: { [key: string]: any } = {};
+    
+    for (let j = 0; j < headerRange.length; j++) {
+      let headerName = headerRange[j].toString().trim();
+      let value = row[j];
+      
+      // แปลงวันที่ Excel Serial (ถ้ามี) เป็น YYYY-MM-DD
+      if (typeof value === "number" && (headerName.toLowerCase().includes("date") || headerName.toLowerCase() === "deadline")) {
+        let date = new Date(Math.round((value - 25569) * 86400 * 1000));
+        taskObj[headerName] = date.toISOString().split("T")[0];
+      } else {
+        taskObj[headerName] = value;
+      }
+    }
+    // เพิ่มเฉพาะแถวที่มีข้อมูล
+    if(taskObj["taskName"] || taskObj["title"]) {
+      tasks.push(taskObj);
+    }
+  }
+
+  // ส่งค่ากลับเป็น JSON String เพื่อให้ Power Automate หรือ API นำไปใช้ต่อ
+  return JSON.stringify(tasks);
+}
+</pre>
+      </div>
+      <p class="mt-2 text-xs text-slate-400"><b>ไอเดียการต่อยอด:</b> ใช้ Power Automate ตั้งเวลา (Scheduled Cloud Flow) ให้รันสคริปต์นี้ทุกๆ 1 ชั่วโมง แล้วส่งผลลัพธ์ JSON ไปอัปเดตไฟล์บนเซิร์ฟเวอร์ หรือส่งเข้า REST API เพื่อให้หน้า Dashboard แสดงผล Real-time</p>
+    </div>
+
+  </div>
+  <div class="p-4 bg-slate-800 border-t border-slate-700 text-right rounded-b-xl">
+    <button onclick="document.getElementById('instructionsModal').close()" class="px-4 py-2 bg-slate-600 hover:bg-slate-500 rounded-lg text-white font-medium">ปิดหน้าต่าง</button>
+  </div>
+</dialog>
 
 <script>
-const appState = { selectedEmployee:'all', selectedCategory:'all', selectedJobType:'all', date:new Date(), tasks:[], employees:[], monthlyChart:null, dailyTrendChart:null };
-const brandingStorageKey='dashboardBranding';
-const storageTaskKey='dashboardTasks';
+// ==========================================
+// 1. State Management & Initial Sample Data
+// ==========================================
+const appState = { 
+  selectedEmployee: 'all', selectedCategory: 'all', selectedJobType: 'all', 
+  date: new Date('2026-04-01'), // ค่าเริ่มต้นเป็น 01-04-2026 ตามความต้องการ
+  tasks: [], employees: [], 
+  monthlyChart: null, dailyTrendChart: null 
+};
+const brandingStorageKey = 'dashboardBranding';
+const storageTaskKey = 'dashboardTasks';
 
+// ข้อมูลจำลอง (อัปเดตเพิ่มปริมาณงานให้เห็นภาพรวมชัดเจน)
 const sampleTasks = [
-  // Routine - Finance (04-01)
-  {id:1, category:'Routine', planDate:'2026-04-01', jobName:'Finance', taskName:'กระทบยอดเงินสด', required:true, ownerId:'EMP001', ownerName:'สมชาย ใจดี', jobType:'Daily Ops', receiveDate:'2026-04-01', deadline:'2026-04-01', progress:100, workStatus:'done', actualDelivery:'2026-04-01'},
-  {id:2, category:'Routine', planDate:'2026-04-01', jobName:'Finance', taskName:'ตรวจสอบยอดขายสาขา', required:true, ownerId:'EMP001', ownerName:'สมชาย ใจดี', jobType:'Daily Ops', receiveDate:'2026-04-01', deadline:'2026-04-01', progress:60, workStatus:'in_progress', actualDelivery:''},
-  {id:3, category:'Routine', planDate:'2026-04-01', jobName:'Finance', taskName:'อัปโหลดรายงานภาษี', required:false, ownerId:'EMP001', ownerName:'สมชาย ใจดี', jobType:'Compliance', receiveDate:'2026-04-01', deadline:'2026-04-01', progress:0, workStatus:'not_started', actualDelivery:''},
-  // Routine - Operations
-  {id:4, category:'Routine', planDate:'2026-04-01', jobName:'Operations', taskName:'เช็คลูกค้าค้างส่งสินค้า', required:true, ownerId:'EMP002', ownerName:'สมหญิง พัฒนา', jobType:'Operations', receiveDate:'2026-04-01', deadline:'2026-04-01', progress:100, workStatus:'done', actualDelivery:'2026-04-01'},
-  {id:5, category:'Routine', planDate:'2026-04-01', jobName:'Operations', taskName:'สรุปต้นทุนขนส่งรายวัน', required:true, ownerId:'EMP002', ownerName:'สมหญิง พัฒนา', jobType:'Operations', receiveDate:'2026-04-01', deadline:'2026-04-01', progress:20, workStatus:'in_progress', actualDelivery:''},
-  {id:6, category:'Routine', planDate:'2026-04-01', jobName:'Operations', taskName:'ตรวจสต๊อกสินค้ากลุ่ม A', required:true, ownerId:'EMP003', ownerName:'อนันต์ ทดสอบ', jobType:'Warehouse', receiveDate:'2026-04-01', deadline:'2026-04-01', progress:0, workStatus:'not_started', actualDelivery:''},
-  // Routine - previous day sample
-  {id:7, category:'Routine', planDate:'2026-03-31', jobName:'Finance', taskName:'กระทบยอดเงินสด', required:true, ownerId:'EMP001', ownerName:'สมชาย ใจดี', jobType:'Daily Ops', receiveDate:'2026-03-31', deadline:'2026-03-31', progress:100, workStatus:'done', actualDelivery:'2026-03-31'},
-  {id:8, category:'Routine', planDate:'2026-03-31', jobName:'Operations', taskName:'เช็คลูกค้าค้างส่งสินค้า', required:true, ownerId:'EMP002', ownerName:'สมหญิง พัฒนา', jobType:'Operations', receiveDate:'2026-03-31', deadline:'2026-03-31', progress:100, workStatus:'done', actualDelivery:'2026-03-31'},
-  {id:9, category:'Routine', planDate:'2026-03-31', jobName:'Operations', taskName:'ตรวจสต๊อกสินค้ากลุ่ม A', required:false, ownerId:'EMP003', ownerName:'อนันต์ ทดสอบ', jobType:'Warehouse', receiveDate:'2026-03-31', deadline:'2026-03-31', progress:0, workStatus:'not_started', actualDelivery:''},
-  {id:10, category:'Routine', planDate:'2026-04-01', jobName:'Sales', taskName:'เช็คยอดขายเทียบเป้า', required:true, ownerId:'EMP006', ownerName:'ภัทรา พูลทรัพย์', jobType:'Sales Ops', receiveDate:'2026-04-01', deadline:'2026-04-01', progress:75, workStatus:'in_progress', actualDelivery:''},
-  {id:11, category:'Routine', planDate:'2026-04-01', jobName:'Sales', taskName:'อัปเดต pipeline ใน CRM', required:true, ownerId:'EMP006', ownerName:'ภัทรา พูลทรัพย์', jobType:'Sales Ops', receiveDate:'2026-04-01', deadline:'2026-04-01', progress:30, workStatus:'in_progress', actualDelivery:''},
-  {id:12, category:'Routine', planDate:'2026-04-01', jobName:'HR', taskName:'ตรวจสอบเวลาเข้างาน', required:true, ownerId:'EMP007', ownerName:'กานต์กมล วงศ์ดี', jobType:'HR Daily', receiveDate:'2026-04-01', deadline:'2026-04-01', progress:100, workStatus:'done', actualDelivery:'2026-04-01'},
-  {id:13, category:'Routine', planDate:'2026-04-01', jobName:'HR', taskName:'ส่งรายงาน OT', required:true, ownerId:'EMP007', ownerName:'กานต์กมล วงศ์ดี', jobType:'HR Daily', receiveDate:'2026-04-01', deadline:'2026-04-01', progress:40, workStatus:'in_progress', actualDelivery:''},
-  {id:14, category:'Routine', planDate:'2026-04-01', jobName:'IT Support', taskName:'ตรวจสอบสถานะเซิร์ฟเวอร์', required:true, ownerId:'EMP008', ownerName:'วิษณุ เทพไชย', jobType:'IT Ops', receiveDate:'2026-04-01', deadline:'2026-04-01', progress:100, workStatus:'done', actualDelivery:'2026-04-01'},
-  {id:15, category:'Routine', planDate:'2026-04-01', jobName:'IT Support', taskName:'สำรองข้อมูลประจำวัน', required:true, ownerId:'EMP008', ownerName:'วิษณุ เทพไชย', jobType:'IT Ops', receiveDate:'2026-04-01', deadline:'2026-04-01', progress:55, workStatus:'in_progress', actualDelivery:''},
-  {id:16, category:'Routine', planDate:'2026-04-01', jobName:'Logistics', taskName:'ยืนยันรอบรถจัดส่ง', required:true, ownerId:'EMP009', ownerName:'อภิชาติ นาวา', jobType:'Logistics', receiveDate:'2026-04-01', deadline:'2026-04-01', progress:15, workStatus:'in_progress', actualDelivery:''},
-  {id:17, category:'Routine', planDate:'2026-04-01', jobName:'Logistics', taskName:'อัปเดต SLA ขนส่ง', required:true, ownerId:'EMP009', ownerName:'อภิชาติ นาวา', jobType:'Logistics', receiveDate:'2026-04-01', deadline:'2026-04-01', progress:0, workStatus:'not_started', actualDelivery:''},
-  // Adhoc
-  {id:20, category:'Adhoc', title:'เตรียมไฟล์นำเสนอผู้บริหาร Q2', ownerId:'EMP001', ownerName:'สมชาย ใจดี', jobType:'Presentation', receiveDate:'2026-03-30', deadline:'2026-04-02', progress:55, workStatus:'in_progress', actualDelivery:''},
-  {id:21, category:'Adhoc', title:'แก้ไขสัญญาลูกค้ารายใหญ่', ownerId:'EMP004', ownerName:'นวลจันทร์ ศรี', jobType:'Legal', receiveDate:'2026-03-28', deadline:'2026-03-31', progress:80, workStatus:'in_progress', actualDelivery:''},
-  {id:22, category:'Adhoc', title:'วิเคราะห์ต้นทุนสินค้าใหม่', ownerId:'EMP003', ownerName:'อนันต์ ทดสอบ', jobType:'Analysis', receiveDate:'2026-03-27', deadline:'2026-04-05', progress:15, workStatus:'in_progress', actualDelivery:''},
-  {id:23, category:'Adhoc', title:'อบรมทีมขายเรื่อง CRM', ownerId:'EMP002', ownerName:'สมหญิง พัฒนา', jobType:'Training', receiveDate:'2026-03-20', deadline:'2026-03-25', progress:100, workStatus:'done', actualDelivery:'2026-03-24'},
-  {id:24, category:'Adhoc', title:'วางแผนโปรโมชั่นเดือนเมษายน', ownerId:'EMP005', ownerName:'มาลี จิตดี', jobType:'Marketing', receiveDate:'2026-03-29', deadline:'2026-04-03', progress:45, workStatus:'in_progress', actualDelivery:''},
-  {id:25, category:'Adhoc', title:'สรุปปัญหาเคลมสินค้า', ownerId:'EMP005', ownerName:'มาลี จิตดี', jobType:'Support', receiveDate:'2026-03-29', deadline:'2026-04-01', progress:0, workStatus:'not_started', actualDelivery:''},
-  {id:26, category:'Adhoc', title:'เจรจาดีลลูกค้าองค์กร A', ownerId:'EMP006', ownerName:'ภัทรา พูลทรัพย์', jobType:'Sales', receiveDate:'2026-03-31', deadline:'2026-04-04', progress:35, workStatus:'in_progress', actualDelivery:''},
-  {id:27, category:'Adhoc', title:'วิเคราะห์ churn ลูกค้าเดือนมีนาคม', ownerId:'EMP010', ownerName:'เจษฎา มั่นคง', jobType:'Data Analysis', receiveDate:'2026-03-30', deadline:'2026-04-06', progress:20, workStatus:'in_progress', actualDelivery:''},
-  {id:28, category:'Adhoc', title:'ออกแบบแคมเปญ Songkran', ownerId:'EMP005', ownerName:'มาลี จิตดี', jobType:'Marketing', receiveDate:'2026-03-27', deadline:'2026-04-02', progress:70, workStatus:'in_progress', actualDelivery:''},
-  {id:29, category:'Adhoc', title:'รีวิวสัญญาซัพพลายเออร์ใหม่', ownerId:'EMP004', ownerName:'นวลจันทร์ ศรี', jobType:'Legal', receiveDate:'2026-03-30', deadline:'2026-04-03', progress:10, workStatus:'in_progress', actualDelivery:''},
-  {id:30, category:'Adhoc', title:'ทำ UAT โมดูลใบแจ้งหนี้', ownerId:'EMP008', ownerName:'วิษณุ เทพไชย', jobType:'IT Project', receiveDate:'2026-03-29', deadline:'2026-04-01', progress:85, workStatus:'in_progress', actualDelivery:''},
+  // --- EXECUTIVE & MANAGEMENT ---
+  {id:101, category:'Adhoc', title:'อนุมัติงบประมาณไตรมาส 2', ownerId:'EMP000', ownerName:'วิชัย บริหาร', jobType:'Executive', receiveDate:'2026-03-25', deadline:'2026-04-02', progress:80, workStatus:'in_progress'},
+  {id:102, category:'Adhoc', title:'ประชุม Board of Directors', ownerId:'EMP000', ownerName:'วิชัย บริหาร', jobType:'Executive', receiveDate:'2026-03-28', deadline:'2026-04-05', progress:0, workStatus:'not_started'},
+  
+  // --- FINANCE & ACCOUNTING ---
+  {id:1, category:'Routine', planDate:'2026-04-01', jobName:'Finance', taskName:'กระทบยอดเงินสด', required:true, ownerId:'EMP001', ownerName:'สมชาย ใจดี', jobType:'Daily Ops', progress:100, workStatus:'done', actualDelivery:'2026-04-01'},
+  {id:2, category:'Routine', planDate:'2026-04-01', jobName:'Finance', taskName:'ตรวจสอบยอดขายสาขา', required:true, ownerId:'EMP001', ownerName:'สมชาย ใจดี', jobType:'Daily Ops', progress:60, workStatus:'in_progress'},
+  {id:3, category:'Routine', planDate:'2026-04-01', jobName:'Finance', taskName:'อัปโหลดรายงานภาษี', required:false, ownerId:'EMP001', ownerName:'สมชาย ใจดี', jobType:'Compliance', progress:0, workStatus:'not_started'},
   {id:31, category:'Adhoc', title:'สรุปค่าใช้จ่ายเดินทาง Q1', ownerId:'EMP001', ownerName:'สมชาย ใจดี', jobType:'Finance', receiveDate:'2026-03-26', deadline:'2026-03-30', progress:100, workStatus:'done', actualDelivery:'2026-03-29'},
-  {id:32, category:'Adhoc', title:'จัดทำแผนอัตรากำลัง Q2', ownerId:'EMP007', ownerName:'กานต์กมล วงศ์ดี', jobType:'HR Planning', receiveDate:'2026-03-31', deadline:'2026-04-07', progress:5, workStatus:'not_started', actualDelivery:''},
-  {id:33, category:'Adhoc', title:'ติดตามเคสลูกค้าร้องเรียนระดับสูง', ownerId:'EMP009', ownerName:'อภิชาติ นาวา', jobType:'Customer Care', receiveDate:'2026-03-28', deadline:'2026-03-31', progress:50, workStatus:'in_progress', actualDelivery:''},
-  {id:34, category:'Adhoc', title:'จัดเตรียมเอกสาร Audit ภายใน', ownerId:'EMP003', ownerName:'อนันต์ ทดสอบ', jobType:'Internal Audit', receiveDate:'2026-03-25', deadline:'2026-04-02', progress:65, workStatus:'in_progress', actualDelivery:''}
+
+  // --- OPERATIONS & LOGISTICS ---
+  {id:4, category:'Routine', planDate:'2026-04-01', jobName:'Operations', taskName:'เช็คลูกค้าค้างส่งสินค้า', required:true, ownerId:'EMP002', ownerName:'สมหญิง พัฒนา', jobType:'Operations', progress:100, workStatus:'done', actualDelivery:'2026-04-01'},
+  {id:5, category:'Routine', planDate:'2026-04-01', jobName:'Operations', taskName:'สรุปต้นทุนขนส่งรายวัน', required:true, ownerId:'EMP002', ownerName:'สมหญิง พัฒนา', jobType:'Operations', progress:20, workStatus:'in_progress'},
+  {id:23, category:'Adhoc', title:'อบรมทีมเรื่องมาตรฐานใหม่ ISO', ownerId:'EMP002', ownerName:'สมหญิง พัฒนา', jobType:'Training', receiveDate:'2026-03-20', deadline:'2026-03-31', progress:90, workStatus:'in_progress'},
+  {id:16, category:'Routine', planDate:'2026-04-01', jobName:'Logistics', taskName:'ยืนยันรอบรถจัดส่งประจำวัน', required:true, ownerId:'EMP009', ownerName:'อภิชาติ นาวา', jobType:'Logistics', progress:100, workStatus:'done'},
+  {id:17, category:'Routine', planDate:'2026-04-01', jobName:'Logistics', taskName:'อัปเดต SLA ขนส่งในระบบ', required:true, ownerId:'EMP009', ownerName:'อภิชาติ นาวา', jobType:'Logistics', progress:10, workStatus:'in_progress'},
+  {id:33, category:'Adhoc', title:'ติดตามเคสสินค้าระหว่างทางสูญหาย', ownerId:'EMP009', ownerName:'อภิชาติ นาวา', jobType:'Customer Care', receiveDate:'2026-03-28', deadline:'2026-03-31', progress:50, workStatus:'in_progress'},
+
+  // --- WAREHOUSE ---
+  {id:6, category:'Routine', planDate:'2026-04-01', jobName:'Warehouse', taskName:'ตรวจสต๊อกสินค้ากลุ่ม A (High Value)', required:true, ownerId:'EMP003', ownerName:'อนันต์ ทดสอบ', jobType:'Warehouse', progress:0, workStatus:'not_started'},
+  {id:22, category:'Adhoc', title:'วิเคราะห์พื้นที่จัดเก็บสินค้าใหม่', ownerId:'EMP003', ownerName:'อนันต์ ทดสอบ', jobType:'Analysis', receiveDate:'2026-03-27', deadline:'2026-04-02', progress:15, workStatus:'in_progress'},
+  {id:34, category:'Adhoc', title:'จัดเตรียมสถานที่สำหรับ Audit ภายใน', ownerId:'EMP003', ownerName:'อนันต์ ทดสอบ', jobType:'Internal Audit', receiveDate:'2026-03-25', deadline:'2026-04-02', progress:65, workStatus:'in_progress'},
+
+  // --- LEGAL & ADMIN ---
+  {id:21, category:'Adhoc', title:'แก้ไขสัญญาลูกค้ารายใหญ่ (VIP)', ownerId:'EMP004', ownerName:'นวลจันทร์ ศรี', jobType:'Legal', receiveDate:'2026-03-28', deadline:'2026-03-31', progress:80, workStatus:'in_progress'},
+  {id:29, category:'Adhoc', title:'รีวิวสัญญาผู้รับเหมาซ่อมบำรุง', ownerId:'EMP004', ownerName:'นวลจันทร์ ศรี', jobType:'Legal', receiveDate:'2026-03-30', deadline:'2026-04-03', progress:10, workStatus:'in_progress'},
+
+  // --- MARKETING ---
+  {id:103, category:'Routine', planDate:'2026-04-01', jobName:'Marketing', taskName:'อัปเดต Social Media Content', required:true, ownerId:'EMP005', ownerName:'มาลี จิตดี', jobType:'Marketing', progress:100, workStatus:'done'},
+  {id:24, category:'Adhoc', title:'วางแผนโปรโมชั่นเดือนเมษายน', ownerId:'EMP005', ownerName:'มาลี จิตดี', jobType:'Marketing', receiveDate:'2026-03-29', deadline:'2026-04-01', progress:45, workStatus:'in_progress'},
+  {id:28, category:'Adhoc', title:'ออกแบบแคมเปญ Songkran Festival', ownerId:'EMP005', ownerName:'มาลี จิตดี', jobType:'Marketing', receiveDate:'2026-03-27', deadline:'2026-04-02', progress:70, workStatus:'in_progress'},
+
+  // --- SALES ---
+  {id:10, category:'Routine', planDate:'2026-04-01', jobName:'Sales', taskName:'เช็คยอดขายเทียบเป้ารายวัน', required:true, ownerId:'EMP006', ownerName:'ภัทรา พูลทรัพย์', jobType:'Sales Ops', progress:75, workStatus:'in_progress'},
+  {id:11, category:'Routine', planDate:'2026-04-01', jobName:'Sales', taskName:'อัปเดต Pipeline ลูกค้าใน CRM', required:true, ownerId:'EMP006', ownerName:'ภัทรา พูลทรัพย์', jobType:'Sales Ops', progress:100, workStatus:'done'},
+  {id:26, category:'Adhoc', title:'เจรจาต่อรองลูกค้าโปรเจคพิเศษ B', ownerId:'EMP006', ownerName:'ภัทรา พูลทรัพย์', jobType:'Sales', receiveDate:'2026-03-31', deadline:'2026-04-04', progress:35, workStatus:'in_progress'},
+
+  // --- HR ---
+  {id:12, category:'Routine', planDate:'2026-04-01', jobName:'HR', taskName:'ตรวจสอบเวลาเข้างานและแจ้งสาย', required:true, ownerId:'EMP007', ownerName:'กานต์กมล วงศ์ดี', jobType:'HR Daily', progress:100, workStatus:'done'},
+  {id:13, category:'Routine', planDate:'2026-04-01', jobName:'HR', taskName:'ดึงรายงาน OT จากเครื่องสแกน', required:true, ownerId:'EMP007', ownerName:'กานต์กมล วงศ์ดี', jobType:'HR Daily', progress:40, workStatus:'in_progress'},
+  {id:32, category:'Adhoc', title:'จัดทำแผนอัตรากำลังพล (Manpower) Q2', ownerId:'EMP007', ownerName:'กานต์กมล วงศ์ดี', jobType:'HR Planning', receiveDate:'2026-03-31', deadline:'2026-04-07', progress:5, workStatus:'not_started'},
+
+  // --- IT SUPPORT ---
+  {id:14, category:'Routine', planDate:'2026-04-01', jobName:'IT Support', taskName:'ตรวจสอบสถานะเซิร์ฟเวอร์หลัก', required:true, ownerId:'EMP008', ownerName:'วิษณุ เทพไชย', jobType:'IT Ops', progress:100, workStatus:'done'},
+  {id:15, category:'Routine', planDate:'2026-04-01', jobName:'IT Support', taskName:'สำรองข้อมูล (Backup) ประจำวัน', required:true, ownerId:'EMP008', ownerName:'วิษณุ เทพไชย', jobType:'IT Ops', progress:55, workStatus:'in_progress'},
+  {id:30, category:'Adhoc', title:'ทำ UAT ทดสอบระบบใบแจ้งหนี้ใหม่', ownerId:'EMP008', ownerName:'วิษณุ เทพไชย', jobType:'IT Project', receiveDate:'2026-03-29', deadline:'2026-04-01', progress:85, workStatus:'in_progress'},
+
+  // --- DATA & ANALYSIS ---
+  {id:104, category:'Routine', planDate:'2026-04-01', jobName:'Data Team', taskName:'ดึง Data Lake เข้า PowerBI', required:true, ownerId:'EMP010', ownerName:'เจษฎา มั่นคง', jobType:'Data', progress:100, workStatus:'done'},
+  {id:27, category:'Adhoc', title:'วิเคราะห์สาเหตุลูกค้ายกเลิกบริการ (Churn) เดือนมีนาคม', ownerId:'EMP010', ownerName:'เจษฎา มั่นคง', jobType:'Data Analysis', receiveDate:'2026-03-30', deadline:'2026-04-06', progress:20, workStatus:'in_progress'},
+  
+  // --- PREVIOUS DAY ROUTINE (For Chart Data 2026-03-31) ---
+  {id:7, category:'Routine', planDate:'2026-03-31', jobName:'Finance', taskName:'กระทบยอดเงินสด', required:true, ownerId:'EMP001', ownerName:'สมชาย ใจดี', progress:100, workStatus:'done', actualDelivery:'2026-03-31'},
+  {id:8, category:'Routine', planDate:'2026-03-31', jobName:'Operations', taskName:'เช็คลูกค้าค้างส่งสินค้า', required:true, ownerId:'EMP002', ownerName:'สมหญิง พัฒนา', progress:100, workStatus:'done', actualDelivery:'2026-03-31'},
+  {id:9, category:'Routine', planDate:'2026-03-31', jobName:'Warehouse', taskName:'ตรวจสต๊อกสินค้า', required:true, ownerId:'EMP003', ownerName:'อนันต์ ทดสอบ', progress:100, workStatus:'done', actualDelivery:'2026-03-31'},
+  {id:105, category:'Routine', planDate:'2026-03-31', jobName:'Sales', taskName:'เช็คยอดขายเทียบเป้ารายวัน', required:true, ownerId:'EMP006', ownerName:'ภัทรา พูลทรัพย์', progress:100, workStatus:'done', actualDelivery:'2026-03-31'},
+  {id:106, category:'Routine', planDate:'2026-03-31', jobName:'IT Support', taskName:'ตรวจสอบสถานะเซิร์ฟเวอร์หลัก', required:true, ownerId:'EMP008', ownerName:'วิษณุ เทพไชย', progress:100, workStatus:'done', actualDelivery:'2026-03-31'}
 ];
 
+// ==========================================
+// 2. Helper Functions
+// ==========================================
 const el = id => document.getElementById(id);
 const fmtDate = d => new Date(d).toISOString().slice(0,10);
 const normalizeProgress = v => Math.max(0, Math.min(100, Number(v)||0));
-function normalizeDate(v){ if(!v) return ''; if(typeof v==='number'){const base=new Date(Date.UTC(1899,11,30));return fmtDate(new Date(base.getTime()+v*86400000));} const d=new Date(v); return Number.isNaN(d.getTime())?'':fmtDate(d); }
+function normalizeDate(v){ 
+  if(!v) return ''; 
+  if(typeof v==='number'){const base=new Date(Date.UTC(1899,11,30));return fmtDate(new Date(base.getTime()+v*86400000));} 
+  const d=new Date(v); 
+  return Number.isNaN(d.getTime())?'':fmtDate(d); 
+}
 function normalizeBool(v){ return ['yes','y','true','1','required'].includes(String(v||'').toLowerCase()); }
-function normalizeWorkStatus(v){ const s=String(v||'').toLowerCase(); if(s.includes('done')||s.includes('complete')) return 'done'; if(s.includes('progress')) return 'in_progress'; return 'not_started'; }
+function normalizeWorkStatus(v){ 
+  const s=String(v||'').toLowerCase(); 
+  if(s.includes('done')||s.includes('complete')) return 'done'; 
+  if(s.includes('progress')) return 'in_progress'; 
+  return 'not_started'; 
+}
 
+// LocalStorage Persistence
 function loadBranding(){
   const stored = JSON.parse(localStorage.getItem(brandingStorageKey)||'{}');
   el('companyNameInput').value = stored.companyName || '';
@@ -204,6 +376,7 @@ function loadBranding(){
 function saveBranding(partial){ const curr=JSON.parse(localStorage.getItem(brandingStorageKey)||'{}'); localStorage.setItem(brandingStorageKey, JSON.stringify({...curr,...partial})); }
 function saveTasks(){ localStorage.setItem(storageTaskKey, JSON.stringify(appState.tasks)); }
 
+// Calculate Status for Adhoc/Routine
 function computeStatus(t){
   if ((t.actualDelivery && t.actualDelivery <= fmtDate(appState.date)) || normalizeProgress(t.progress)>=100 || t.workStatus==='done') return 'success';
   const today = fmtDate(appState.date);
@@ -219,6 +392,7 @@ function filteredTasks(){
     if(appState.selectedEmployee!=='all' && t.ownerId!==appState.selectedEmployee) return false;
     if(appState.selectedCategory!=='all' && t.category!==appState.selectedCategory) return false;
     if(appState.selectedJobType!=='all' && (t.jobType||'General')!==appState.selectedJobType) return false;
+    
     if(t.category==='Routine') {
       if(t.required===false) return false;
       return (t.planDate||t.receiveDate)===selectedDate;
@@ -227,12 +401,18 @@ function filteredTasks(){
   });
 }
 
+// ==========================================
+// 3. Render Functions (UI Update)
+// ==========================================
 function renderSummary(tasks){
   const routine = tasks.filter(t=>t.category==='Routine');
   const routineDone = routine.filter(t=>computeStatus(t)==='success').length;
-  const percent = routine.length?Math.round((routineDone/routine.length)*100):0;
+  const percent = routine.length ? Math.round((routineDone/routine.length)*100) : 0;
+  
   const adhoc = tasks.filter(t=>t.category==='Adhoc');
+  
   el('routinePercent').textContent = `${percent}%`;
+  el('routinePercent').className = `text-3xl font-bold mt-1 ${percent === 100 ? 'text-emerald-400' : 'text-white'}`;
   el('routineCount').textContent = `${routineDone}/${routine.length} งาน`;
   el('pendingCount').textContent = adhoc.filter(t=>computeStatus(t)==='pending').length;
   el('warningCount').textContent = adhoc.filter(t=>computeStatus(t)==='warning').length;
@@ -242,37 +422,48 @@ function renderSummary(tasks){
 function renderRoutine(tasks){
   const list = el('routineList');
   const routine = tasks.filter(t=>t.category==='Routine');
-  if(!routine.length){ list.innerHTML='<p class="text-sm text-slate-400">ไม่มี Routine ในวันที่เลือก (หรือกำหนด required = No)</p>'; return; }
+  if(!routine.length){ list.innerHTML='<div class="h-full flex items-center justify-center p-6 border border-dashed border-slate-700 rounded-xl"><p class="text-sm text-slate-400"><i class="fa-solid fa-mug-hot mr-2"></i>ไม่มี Routine ในวันที่เลือก (หรือกำหนด required = No)</p></div>'; return; }
+  
   const jobs = {};
-  routine.forEach(t=>{ const key=t.jobName||'No Job'; (jobs[key] ||= []).push(t); });
+  routine.forEach(t=>{ const key=t.jobName||'General'; (jobs[key] ||= []).push(t); });
 
   list.innerHTML = Object.entries(jobs).map(([job,items])=>{
     const done = items.filter(x=>computeStatus(x)==='success').length;
-    return `<details open class="mb-3 rounded-lg border border-slate-700/70 bg-slate-900/45">
-      <summary class="cursor-pointer px-3 py-2 flex items-center justify-between">
-        <span class="font-medium text-white"><i class="fa-solid fa-briefcase mr-2 text-sky-300"></i>${job}</span>
-        <span class="text-xs text-slate-300">${done}/${items.length} done <i class="fa-solid fa-chevron-down ml-1"></i></span>
+    const isAllDone = done === items.length;
+    return `<details open class="mb-3 rounded-lg border ${isAllDone ? 'border-emerald-900/50 bg-emerald-900/10' : 'border-slate-700/70 bg-slate-900/45'} transition-colors">
+      <summary class="cursor-pointer px-4 py-3 flex items-center justify-between outline-none">
+        <span class="font-medium ${isAllDone ? 'text-emerald-300' : 'text-white'}">
+          <i class="fa-solid fa-briefcase mr-2 text-sky-400 opacity-80"></i>${job}
+        </span>
+        <span class="text-xs ${isAllDone ? 'bg-emerald-800/50 text-emerald-200' : 'bg-slate-800 text-slate-300'} px-2 py-1 rounded-full">${done}/${items.length} done <i class="fa-solid fa-chevron-down ml-1"></i></span>
       </summary>
-      <div class="px-3 pb-3 space-y-2">${items.map(t=>`
-        <div class="rounded-lg border border-slate-700/60 p-2">
-          <div class="flex flex-wrap items-center justify-between gap-2">
-            <p class="text-sm text-white">${t.taskName || t.title}</p>
-            <label class="text-xs flex items-center gap-2"><input type="checkbox" data-rcheck="${t.id}" ${computeStatus(t)==='success'?'checked':''}/> เสร็จแล้ว</label>
+      <div class="px-3 pb-3 space-y-2">
+        ${items.map(t=>`
+        <div class="rounded-lg border ${computeStatus(t)==='success' ? 'border-emerald-700/30 bg-emerald-900/20' : 'border-slate-700/60 bg-slate-800/40'} p-3 hover:border-slate-500 transition-colors">
+          <div class="flex flex-wrap items-start justify-between gap-2">
+            <p class="text-sm ${computeStatus(t)==='success' ? 'text-emerald-200 line-through opacity-80' : 'text-slate-100'} font-medium flex-1">${t.taskName || t.title}</p>
+            <label class="text-xs flex items-center gap-2 cursor-pointer bg-slate-900 px-2 py-1 rounded-md border border-slate-700 hover:bg-slate-800">
+              <input type="checkbox" data-rcheck="${t.id}" class="w-4 h-4 accent-emerald-500" ${computeStatus(t)==='success'?'checked':''}/> เสร็จแล้ว
+            </label>
           </div>
-          <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-            <span class="text-slate-400">${t.ownerName}</span>
-            <input type="number" min="0" max="100" data-rprog="${t.id}" value="${normalizeProgress(t.progress)}" class="w-16 bg-slate-900/80 border border-slate-700 rounded px-2 py-1" />
-            <select data-rstatus="${t.id}" class="bg-slate-900/80 border border-slate-700 rounded px-2 py-1">
+          <div class="mt-3 flex flex-wrap items-center gap-3 text-xs">
+            <span class="text-slate-400 bg-slate-900/50 px-2 py-1 rounded"><i class="fa-regular fa-circle-user mr-1"></i>${t.ownerName}</span>
+            <div class="flex items-center gap-1">
+              <input type="number" min="0" max="100" data-rprog="${t.id}" value="${normalizeProgress(t.progress)}" class="w-14 bg-slate-900 border border-slate-600 rounded px-1.5 py-1 text-center focus:border-sky-500 outline-none" />
+              <span class="text-slate-500">%</span>
+            </div>
+            <select data-rstatus="${t.id}" class="bg-slate-900 border border-slate-600 rounded px-2 py-1 text-slate-300 focus:border-sky-500 outline-none">
               <option value="not_started" ${t.workStatus==='not_started'?'selected':''}>ยังไม่เริ่ม</option>
               <option value="in_progress" ${t.workStatus==='in_progress'?'selected':''}>กำลังทำ</option>
               <option value="done" ${t.workStatus==='done'?'selected':''}>เสร็จแล้ว</option>
             </select>
-            <span class="${computeStatus(t)==='overdue'?'text-red-300':computeStatus(t)==='warning'?'text-yellow-300':'text-slate-300'}">${computeStatus(t)}</span>
           </div>
-        </div>`).join('')}</div>
+        </div>`).join('')}
+      </div>
     </details>`;
   }).join('');
 
+  // Attach Event Listeners
   list.querySelectorAll('[data-rcheck]').forEach(i=>i.onchange=e=>{updateTaskById(Number(e.target.dataset.rcheck), t=>{t.workStatus=e.target.checked?'done':'not_started'; t.progress=e.target.checked?100:0; t.actualDelivery=e.target.checked?fmtDate(appState.date):'';});});
   list.querySelectorAll('[data-rprog]').forEach(i=>i.onchange=e=>{updateTaskById(Number(e.target.dataset.rprog), t=>{t.progress=normalizeProgress(e.target.value); t.workStatus=t.progress>=100?'done':t.progress>0?'in_progress':'not_started'; t.actualDelivery=t.progress>=100?fmtDate(appState.date):'';});});
   list.querySelectorAll('[data-rstatus]').forEach(i=>i.onchange=e=>{updateTaskById(Number(e.target.dataset.rstatus), t=>{t.workStatus=e.target.value; if(t.workStatus==='done'){t.progress=100;t.actualDelivery=fmtDate(appState.date);} else if(t.workStatus==='in_progress'){t.progress=Math.max(1,normalizeProgress(t.progress)); t.actualDelivery='';} else {t.progress=0;t.actualDelivery='';}});});
@@ -281,33 +472,98 @@ function renderRoutine(tasks){
 function renderAdhoc(tasks){
   const rows = tasks.filter(t=>t.category==='Adhoc');
   const tb = el('adhocTable');
-  if(!rows.length){tb.innerHTML='<tr><td colspan="7" class="px-3 py-4 text-center text-slate-400">ไม่พบงาน Adhoc</td></tr>';return;}
-  tb.innerHTML = rows.map(t=>`<tr class="border-b border-slate-800/80">
-    <td class="px-3 py-2">${t.title||t.taskName}</td><td class="px-3 py-2">${t.ownerName}</td><td class="px-3 py-2">${t.jobType||'General'}</td><td class="px-3 py-2">${t.receiveDate||'-'}</td><td class="px-3 py-2">${t.deadline||'-'}</td>
-    <td class="px-3 py-2"><input type="number" min="0" max="100" data-aprog="${t.id}" value="${normalizeProgress(t.progress)}" class="w-16 bg-slate-900/80 border border-slate-700 rounded px-2 py-1"/>%</td>
-    <td class="px-3 py-2"><select data-astatus="${t.id}" class="bg-slate-900/80 border border-slate-700 rounded px-2 py-1 text-xs"><option value="not_started" ${t.workStatus==='not_started'?'selected':''}>ยังไม่เริ่ม</option><option value="in_progress" ${t.workStatus==='in_progress'?'selected':''}>กำลังทำ</option><option value="done" ${t.workStatus==='done'?'selected':''}>เสร็จแล้ว</option></select><div class="text-xs mt-1">${computeStatus(t)}</div></td>
-  </tr>`).join('');
+  if(!rows.length){tb.innerHTML='<tr><td colspan="4" class="px-3 py-8 text-center text-slate-400 border border-dashed border-slate-700 rounded-lg">ไม่พบงาน Adhoc / งานโปรเจค</td></tr>';return;}
+  
+  tb.innerHTML = rows.sort((a,b)=> new Date(a.deadline||'2099') - new Date(b.deadline||'2099')).map(t=>{
+    const status = computeStatus(t);
+    let statusBadge = '';
+    if(status === 'success') statusBadge = '<span class="text-emerald-400 bg-emerald-400/10 px-2 py-0.5 rounded text-[10px]"><i class="fa-solid fa-check mr-1"></i>Done</span>';
+    else if(status === 'overdue') statusBadge = '<span class="text-red-400 bg-red-400/10 px-2 py-0.5 rounded text-[10px]"><i class="fa-solid fa-triangle-exclamation mr-1"></i>Overdue</span>';
+    else if(status === 'warning') statusBadge = '<span class="text-yellow-400 bg-yellow-400/10 px-2 py-0.5 rounded text-[10px]"><i class="fa-regular fa-clock mr-1"></i>Soon</span>';
+    
+    return `<tr class="border-b border-slate-800 hover:bg-slate-800/30 transition-colors ${status==='success'?'opacity-60':''}">
+      <td class="px-3 py-3">
+        <div class="font-medium text-slate-200 mb-1">${t.title||t.taskName}</div>
+        <div class="flex gap-2">${statusBadge} <span class="text-[10px] text-slate-500 border border-slate-700 px-1.5 rounded">${t.jobType||'General'}</span></div>
+      </td>
+      <td class="px-3 py-3 text-slate-300"><i class="fa-regular fa-circle-user text-slate-500 mr-1"></i>${t.ownerName}</td>
+      <td class="px-3 py-3 text-slate-300 ${status==='overdue'?'text-red-300 font-medium':''}">${t.deadline||'-'}</td>
+      <td class="px-3 py-3">
+        <div class="flex flex-col gap-1.5">
+          <div class="flex items-center gap-1">
+            <input type="number" min="0" max="100" data-aprog="${t.id}" value="${normalizeProgress(t.progress)}" class="w-12 bg-slate-900 border border-slate-600 rounded px-1 py-0.5 text-xs text-center focus:border-sky-500 outline-none"/>
+            <span class="text-xs text-slate-400">%</span>
+          </div>
+          <select data-astatus="${t.id}" class="bg-slate-900 border border-slate-600 rounded px-1 py-0.5 text-[11px] text-slate-300 focus:border-sky-500 outline-none w-full">
+            <option value="not_started" ${t.workStatus==='not_started'?'selected':''}>ยังไม่เริ่ม</option>
+            <option value="in_progress" ${t.workStatus==='in_progress'?'selected':''}>กำลังทำ</option>
+            <option value="done" ${t.workStatus==='done'?'selected':''}>เสร็จแล้ว</option>
+          </select>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+
   tb.querySelectorAll('[data-aprog]').forEach(i=>i.onchange=e=>updateTaskById(Number(e.target.dataset.aprog), t=>{t.progress=normalizeProgress(e.target.value); t.workStatus=t.progress>=100?'done':t.progress>0?'in_progress':'not_started'; t.actualDelivery=t.progress>=100?fmtDate(appState.date):'';}));
   tb.querySelectorAll('[data-astatus]').forEach(i=>i.onchange=e=>updateTaskById(Number(e.target.dataset.astatus), t=>{t.workStatus=e.target.value; if(t.workStatus==='done'){t.progress=100;t.actualDelivery=fmtDate(appState.date);} if(t.workStatus==='not_started'){t.progress=0;t.actualDelivery='';}}));
 }
 
 function renderCharts(tasks){
-  const people = [...new Set(tasks.map(t=>t.ownerName))];
+  // 1. Monthly (Workload by Person)
+  const people = [...new Set(tasks.map(t=>t.ownerName))].sort();
   const success = people.map(p=>tasks.filter(t=>t.ownerName===p&&computeStatus(t)==='success').length);
   const pending = people.map(p=>tasks.filter(t=>t.ownerName===p&&['pending','warning'].includes(computeStatus(t))).length);
   const overdue = people.map(p=>tasks.filter(t=>t.ownerName===p&&computeStatus(t)==='overdue').length);
 
   if(appState.monthlyChart) appState.monthlyChart.destroy();
-  appState.monthlyChart = new Chart(el('monthlyChart'), {type:'bar',data:{labels:people,datasets:[{label:'Success',data:success,backgroundColor:'#10b981'},{label:'Pending/Warning',data:pending,backgroundColor:'#f59e0b'},{label:'Overdue',data:overdue,backgroundColor:'#ef4444'}]},options:{responsive:true,maintainAspectRatio:false}});
+  appState.monthlyChart = new Chart(el('monthlyChart'), {
+    type:'bar',
+    data:{labels:people,datasets:[
+      {label:'Success',data:success,backgroundColor:'#10b981', borderRadius:2},
+      {label:'In Progress',data:pending,backgroundColor:'#38bdf8', borderRadius:2},
+      {label:'Overdue',data:overdue,backgroundColor:'#ef4444', borderRadius:2}
+    ]},
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins: { legend: { position: 'top', labels: {color:'#cbd5e1', boxWidth:12, font:{size:11}} } },
+      scales:{ x:{stacked:true, ticks:{color:'#94a3b8', font:{size:10}}, grid:{display:false}}, y:{stacked:true, ticks:{color:'#94a3b8'}, grid:{color:'rgba(148,163,184,0.1)'}} }
+    }
+  });
 
+  // 2. Daily Trend (Overall 7 Days)
   const labels=[]; const rates=[];
-  for(let i=6;i>=0;i--){ const d=new Date(appState.date); d.setDate(d.getDate()-i); const day=fmtDate(d); labels.push(d.toLocaleDateString('th-TH',{day:'2-digit',month:'short'}));
+  for(let i=6;i>=0;i--){ 
+    const d=new Date(appState.date); d.setDate(d.getDate()-i); 
+    const day=fmtDate(d); 
+    labels.push(d.toLocaleDateString('th-TH',{day:'2-digit',month:'short'}));
+    
+    // คำนวณ % สำหรับวันนั้นๆ
     const dayTasks = appState.tasks.filter(t=> t.category==='Routine' ? (t.required!==false && (t.planDate||t.receiveDate)===day) : (t.receiveDate<=day));
     const done = dayTasks.filter(t=> (t.actualDelivery && t.actualDelivery<=day) || normalizeProgress(t.progress)>=100).length;
-    rates.push(dayTasks.length?Math.round(done/dayTasks.length*100):0);
+    rates.push(dayTasks.length ? Math.round(done/dayTasks.length*100) : 0);
   }
+
   if(appState.dailyTrendChart) appState.dailyTrendChart.destroy();
-  appState.dailyTrendChart = new Chart(el('dailyTrendChart'), {type:'line',data:{labels,datasets:[{label:'Progress %',data:rates,borderColor:'#38bdf8',backgroundColor:'rgba(56,189,248,.2)',fill:true,tension:.35}]},options:{responsive:true,maintainAspectRatio:false,scales:{y:{min:0,max:100}}}});
+  appState.dailyTrendChart = new Chart(el('dailyTrendChart'), {
+    type:'line',
+    data:{
+      labels,
+      datasets:[{
+        label:'Daily Task Completion %',
+        data:rates,
+        borderColor:'#38bdf8', backgroundColor:'rgba(56,189,248,.15)',
+        fill:true, tension:.4, pointBackgroundColor:'#0284c7', pointRadius:4
+      }]
+    },
+    options:{
+      responsive:true, maintainAspectRatio:false,
+      plugins: { legend: { display:false } },
+      scales:{ 
+        y:{min:0,max:100, ticks:{color:'#94a3b8', callback:v=>v+'%'}, grid:{color:'rgba(148,163,184,0.1)'}},
+        x:{ticks:{color:'#94a3b8'}, grid:{display:false}}
+      }
+    }
+  });
 }
 
 function updateTaskById(id, updater){ const t=appState.tasks.find(x=>x.id===id); if(!t) return; updater(t); saveTasks(); renderAll(); }
@@ -316,13 +572,18 @@ function renderAll(){ const tasks=filteredTasks(); renderSummary(tasks); renderR
 function setupDropdowns(reset=true){
   appState.employees=[...new Map(appState.tasks.map(t=>[t.ownerId,{id:t.ownerId,name:t.ownerName}])).values()];
   const emp = el('employeeSelect');
-  emp.innerHTML = `<option value="all">พนักงานทั้งหมด</option>` + appState.employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+  emp.innerHTML = `<option value="all">พนักงานทั้งหมด (All)</option>` + appState.employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
+  
   const jobTypes = [...new Set(appState.tasks.map(t=>t.jobType||'General'))].sort();
-  el('jobTypeSelect').innerHTML = `<option value="all">ทุกประเภทงาน</option>` + jobTypes.map(j=>`<option value="${j}">${j}</option>`).join('');
+  el('jobTypeSelect').innerHTML = `<option value="all">ทุกประเภทงาน (All)</option>` + jobTypes.map(j=>`<option value="${j}">${j}</option>`).join('');
+  
   if(reset){ appState.selectedEmployee='all'; appState.selectedJobType='all'; appState.selectedCategory='all'; }
   emp.value=appState.selectedEmployee; el('categorySelect').value=appState.selectedCategory; el('jobTypeSelect').value=appState.selectedJobType;
 }
 
+// ==========================================
+// 4. Excel Upload & Export Logic
+// ==========================================
 function parseExcelRows(rows){
   const parsed = rows.map((r,i)=>({
     id: Date.now()+i,
@@ -340,27 +601,45 @@ function parseExcelRows(rows){
     actualDelivery: normalizeDate(r.actualDelivery||r.ActualDelivery)||'',
     progress: normalizeProgress(r.progress||r.Progress),
     workStatus: normalizeWorkStatus(r.workStatus||r.WorkStatus)
-  })).filter(r=>r.ownerId && (r.taskName || r.title));
+  })).filter(r=>r.ownerId && (r.taskName || r.title)); // ข้ามแถวว่าง
 
-  if(!parsed.length){ alert('ไม่พบแถวข้อมูลที่ถูกต้อง'); return; }
+  if(!parsed.length){ alert('ไม่พบแถวข้อมูลที่ถูกต้อง กรุณาตรวจสอบชื่อคอลัมน์ (category, taskName, ownerName ฯลฯ)'); return; }
+  
+  // อัปเดตข้อมูลใหม่ทับหรือรวม (ในที่นี้ให้ทับของเดิมเพื่อความง่ายในการเดโม่)
   appState.tasks = parsed;
   saveTasks();
   setupDropdowns();
   renderAll();
+  alert(`นำเข้าข้อมูลสำเร็จ ${parsed.length} รายการ`);
 }
 
-async function importExcel(file){ const data=await file.arrayBuffer(); const wb=XLSX.read(data,{type:'array'}); const ws=wb.Sheets[wb.SheetNames[0]]; const rows=XLSX.utils.sheet_to_json(ws,{defval:''}); parseExcelRows(rows); }
+async function importExcel(file){ 
+  try {
+    const data=await file.arrayBuffer(); 
+    const wb=XLSX.read(data,{type:'array'}); 
+    const ws=wb.Sheets[wb.SheetNames[0]]; 
+    const rows=XLSX.utils.sheet_to_json(ws,{defval:''}); 
+    parseExcelRows(rows); 
+  } catch(e) {
+    alert("เกิดข้อผิดพลาดในการอ่านไฟล์ Excel");
+    console.error(e);
+  }
+}
 
 function downloadTemplate(){
   const headers = ['category','planDate','jobName','taskName','required','ownerId','ownerName','jobType','receiveDate','deadline','progress','workStatus','actualDelivery','title'];
-  const csvRows = appState.tasks.slice(0,18).map(t=>[
+  // เอาตัวอย่างสัก 20 รายการไปเป็น Template
+  const csvRows = appState.tasks.slice(0,20).map(t=>[
     t.category, t.planDate||'', t.jobName||'', t.taskName||'', t.required===false?'No':'Yes', t.ownerId, t.ownerName, t.jobType||'General', t.receiveDate||'', t.deadline||'', t.progress||0, t.workStatus||'not_started', t.actualDelivery||'', t.title||''
   ]);
-  const csv = [headers.join(','), ...csvRows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(','))].join('\n');
+  const csv = ['\uFEFF'+headers.join(','), ...csvRows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(','))].join('\n'); // Add BOM for Thai Excel
   const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
-  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='dashboard_template_sample.csv'; a.click(); URL.revokeObjectURL(a.href);
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='Task_Template.csv'; a.click(); URL.revokeObjectURL(a.href);
 }
 
+// ==========================================
+// 5. App Initialization & Events
+// ==========================================
 function bindEvents(){
   el('employeeSelect').onchange=e=>{appState.selectedEmployee=e.target.value; renderAll();};
   el('categorySelect').onchange=e=>{appState.selectedCategory=e.target.value; renderAll();};
@@ -368,18 +647,33 @@ function bindEvents(){
   el('dateFilter').onchange=e=>{appState.date=new Date(e.target.value); updateDateLabel(); renderAll();};
   el('prevDateBtn').onclick=()=>{appState.date.setDate(appState.date.getDate()-1); el('dateFilter').value=fmtDate(appState.date); updateDateLabel(); renderAll();};
   el('nextDateBtn').onclick=()=>{appState.date.setDate(appState.date.getDate()+1); el('dateFilter').value=fmtDate(appState.date); updateDateLabel(); renderAll();};
-  el('resetDailyBtn').onclick=()=>{ const d=fmtDate(appState.date); appState.tasks.forEach(t=>{ if(t.category==='Routine' && (t.planDate||t.receiveDate)===d && t.required!==false){ t.progress=0; t.workStatus='not_started'; t.actualDelivery=''; }}); saveTasks(); renderAll(); };
+  
+  el('resetDailyBtn').onclick=()=>{ 
+    if(!confirm('ยืนยันการรีเซ็ตงาน Routine ของวันนี้เป็น 0% ทั้งหมดหรือไม่?')) return;
+    const d=fmtDate(appState.date); 
+    appState.tasks.forEach(t=>{ 
+      if(t.category==='Routine' && (t.planDate||t.receiveDate)===d && t.required!==false){ 
+        t.progress=0; t.workStatus='not_started'; t.actualDelivery=''; 
+      }
+    }); 
+    saveTasks(); renderAll(); 
+  };
+  
   el('excelUpload').onchange=async e=>{const f=e.target.files?.[0]; if(f) await importExcel(f); e.target.value='';};
   el('downloadTemplateBtn').onclick=downloadTemplate;
+  
+  // Branding
   el('companyNameInput').oninput=e=>{ const v=e.target.value; el('companyNameText').textContent=v||'Your Company Name'; saveBranding({companyName:v}); };
   el('logoUpload').onchange=e=>{ const f=e.target.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ const data=String(r.result||''); el('companyLogo').src=data; el('companyLogo').classList.remove('hidden'); el('logoFallback').classList.add('hidden'); saveBranding({logoDataUrl:data}); }; r.readAsDataURL(f); };
   el('clearLogoBtn').onclick=()=>{el('companyLogo').src=''; el('companyLogo').classList.add('hidden'); el('logoFallback').classList.remove('hidden'); saveBranding({logoDataUrl:''});};
 }
-function updateDateLabel(){ el('currentDate').textContent = appState.date.toLocaleDateString('th-TH',{weekday:'long',year:'numeric',month:'long',day:'numeric'}); }
+
+function updateDateLabel(){ 
+  el('currentDate').textContent = appState.date.toLocaleDateString('th-TH',{weekday:'long',year:'numeric',month:'long',day:'numeric'}); 
+}
 
 function init(){
   appState.tasks = JSON.parse(localStorage.getItem(storageTaskKey) || 'null') || sampleTasks;
-  appState.date = new Date('2026-04-01');
   el('dateFilter').value = fmtDate(appState.date);
   updateDateLabel();
   setupDropdowns();
@@ -387,7 +681,10 @@ function init(){
   bindEvents();
   renderAll();
 }
+
+// Start App
 init();
 </script>
 </body>
 </html>
+
