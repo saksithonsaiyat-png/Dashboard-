@@ -195,7 +195,7 @@
       <p class="text-slate-400 text-sm mt-1">Daily & Monthly Monitoring | เชื่อมข้อมูลจาก Excel Online (Office 365)</p>
     </div>
 
-    <div class="w-full xl:w-auto grid sm:grid-cols-2 xl:grid-cols-3 gap-3">
+    <div class="w-full xl:w-auto grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
       <div class="glass-card px-3 py-2">
         <label class="text-xs text-slate-400 block mb-1">พนักงาน (Master Data)</label>
         <select id="employeeSelect" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
@@ -209,6 +209,13 @@
           <option value="all">ทุกหมวดงาน</option>
           <option value="Routine">Routine</option>
           <option value="Adhoc">Adhoc</option>
+        </select>
+      </div>
+
+      <div class="glass-card px-3 py-2">
+        <label class="text-xs text-slate-400 block mb-1">ประเภทงาน (Job Type)</label>
+        <select id="jobTypeSelect" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2.5 text-sm">
+          <option value="all">ทุกประเภทงาน</option>
         </select>
       </div>
 
@@ -290,6 +297,7 @@
     </div>
   </section>
 
+
   <section class="glass-card p-4 mb-6">
     <div class="flex items-center justify-between mb-3 border-b border-slate-700 pb-2">
       <h2 class="font-semibold text-white"><i class="fa-solid fa-chart-line text-accentGold mr-2"></i>กราฟความคืบหน้ารายวัน (7 วันล่าสุด)</h2>
@@ -298,17 +306,17 @@
     <div class="h-[280px]"><canvas id="dailyTrendChart"></canvas></div>
   </section>
   <main class="grid grid-cols-1 xl:grid-cols-12 gap-5">
-    <section id="dailyPanel" class="xl:col-span-12 grid grid-cols-1 lg:grid-cols-3 gap-5">
-      <article class="glass-card p-5 lg:col-span-1 h-[560px] flex flex-col">
+    <section id="dailyPanel" class="xl:col-span-12 grid grid-cols-1 gap-5">
+      <article class="glass-card p-5 flex flex-col">
         <div class="flex justify-between items-center mb-3 border-b border-slate-700 pb-2">
           <h2 class="font-semibold text-white"><i class="fa-solid fa-list-check text-accentGold mr-2"></i>Routine (รายวัน)</h2>
           <button id="resetDailyBtn" class="text-xs text-accentBlue hover:text-white">รีเซ็ตวันนี้</button>
         </div>
-        <p class="text-xs text-slate-400 mb-3">ระบบรองรับการเพิ่ม Task ใหม่อัตโมัติจากข้อมูล Excel เช่น Task 17, 18...</p>
+        <p class="text-xs text-slate-400 mb-3">ระบบรองรับการเพิ่ม Task ใหม่อัตโนมัติจากข้อมูล Excel เช่น Task 17, 18...</p>
         <div id="routineList" class="overflow-auto pr-1 flex-1"></div>
       </article>
 
-      <article class="glass-card p-5 lg:col-span-2 h-[560px] flex flex-col">
+      <article class="glass-card p-5 flex flex-col">
         <div class="flex flex-wrap justify-between items-center gap-2 mb-3 border-b border-slate-700 pb-2">
           <h2 class="font-semibold text-white"><i class="fa-solid fa-bolt text-accentGold mr-2"></i>Adhoc Monitoring</h2>
           <span class="text-xs text-slate-300 bg-slate-800/70 px-2 py-1 rounded-md">Highlight: Warning (เหลือ ≤2 วัน) / Overdue</span>
@@ -356,6 +364,7 @@
     const appState = {
       selectedEmployee: 'all',
       selectedCategory: 'all',
+      selectedJobType: 'all',
       date: new Date(),
       employees: [],
       tasks: [],
@@ -457,6 +466,7 @@
       return appState.tasks.filter(task => {
         if (appState.selectedEmployee !== 'all' && task.ownerId !== appState.selectedEmployee) return false;
         if (appState.selectedCategory !== 'all' && task.category !== appState.selectedCategory) return false;
+        if (appState.selectedJobType !== 'all' && (task.jobType || 'General') !== appState.selectedJobType) return false;
         return task.receiveDate <= selectedDate;
       });
     }
@@ -779,8 +789,13 @@
         <option value="Adhoc">Adhoc</option>
       `;
 
+      const jobTypeSelect = el('jobTypeSelect');
+      const jobTypes = [...new Set(appState.tasks.map(t => t.jobType || 'General'))].sort();
+      jobTypeSelect.innerHTML = `<option value="all">ทุกประเภทงาน</option>` + jobTypes.map(j => `<option value="${j}">${j}</option>`).join('');
+
       employeeSelect.value = appState.selectedEmployee;
       categorySelect.value = appState.selectedCategory;
+      jobTypeSelect.value = appState.selectedJobType;
 
       employeeSelect.onchange = (e) => {
         appState.selectedEmployee = e.target.value;
@@ -790,11 +805,16 @@
         appState.selectedCategory = e.target.value;
         renderAll();
       };
+      jobTypeSelect.onchange = (e) => {
+        appState.selectedJobType = e.target.value;
+        renderAll();
+      };
     }
 
     function updateDropdownLabels() {
       if (el('employeeSelect')) el('employeeSelect').value = appState.selectedEmployee;
       if (el('categorySelect')) el('categorySelect').value = appState.selectedCategory;
+      if (el('jobTypeSelect')) el('jobTypeSelect').value = appState.selectedJobType;
     }
 
     function parseExcelRows(rows) {
