@@ -317,7 +317,7 @@ function renderAdhoc(tasks){
   tb.innerHTML = rows.map(t=>`<tr class="border-b border-slate-800/80">
     <td class="px-3 py-2">${t.title||t.taskName}</td><td class="px-3 py-2">${t.ownerName}</td><td class="px-3 py-2">${t.jobType||'General'}</td><td class="px-3 py-2">${t.receiveDate||'-'}</td><td class="px-3 py-2">${t.deadline||'-'}</td>
     <td class="px-3 py-2"><input type="number" min="0" max="100" data-aprog="${t.id}" value="${normalizeProgress(t.progress)}" class="w-16 bg-slate-900/80 border border-slate-700 rounded px-2 py-1"/>%</td>
-    <td class="px-3 py-2"><select data-astatus="${t.id}" class="bg-slate-900/80 border border-slate-700 rounded px-2 py-1 text-xs"><option value="not_started" ${t.workStatus==='not_started'?'selected':''}>ยังไม่เริ่ม</option><option value="in_progress" ${t.workStatus==='in_progress'?'selected':''}>กำลังทำ</option><option value="done" ${t.workStatus==='done'?'selected':''}>เสร็จแล้ว</option></select><div class="text-xs mt-1">${computeStatus(t)}</div></td>
+    <td class="px-3 py-2"><select data-astatus="${t.id}" class="bg-slate-900/80 border border-slate-700 rounded px-2 py-1 text-xs"><option value="not_started" ${t.workStatus==='not_started'?'selected':''}>ยังไม่ริ่ม</option><option value="in_progress" ${t.workStatus==='in_progress'?'selected':''}>กำลังทำ</option><option value="done" ${t.workStatus==='done'?'selected':''}>เสร็จแล้ว</option></select><div class="text-xs mt-1">${computeStatus(t)}</div></td>
   </tr>`).join('');
   tb.querySelectorAll('[data-aprog]').forEach(i=>i.onchange=e=>updateTaskById(Number(e.target.dataset.aprog), t=>{t.progress=normalizeProgress(e.target.value); t.workStatus=t.progress>=100?'done':t.progress>0?'in_progress':'not_started'; t.actualDelivery=t.progress>=100?fmtDate(appState.date):'';}));
   tb.querySelectorAll('[data-astatus]').forEach(i=>i.onchange=e=>updateTaskById(Number(e.target.dataset.astatus), t=>{t.workStatus=e.target.value; if(t.workStatus==='done'){t.progress=100;t.actualDelivery=fmtDate(appState.date);} if(t.workStatus==='not_started'){t.progress=0;t.actualDelivery='';}}));
@@ -381,31 +381,42 @@ function parseExcelRows(rows){
   renderAll();
 }
 
+function findRoutineMatrixHeaderIndex(aoa){
+  if (!aoa?.length) return -1;
+  const maxScan = Math.min(10, aoa.length);
+  for (let r = 0; r < maxScan; r += 1) {
+    const row = aoa[r] || [];
+    const first = String(row[0] || '').trim().toLowerCase();
+    const isTaskHead = ['task', 'tasks', 'งาน', 'รายการงาน'].includes(first);
+    if (!isTaskHead) continue;
+    const dateLike = row.slice(1).filter(Boolean).map(normalizeDateFlexible).filter(Boolean);
+    if (dateLike.length >= 1) return r;
+  }
+  return -1;
+}
+
 function isRoutineMatrixSheet(aoa){
-  if (!aoa?.length) return false;
-  const head = aoa[0] || [];
-  const first = String(head[0] || '').trim().toLowerCase();
-  if (!['task', 'tasks'].includes(first)) return false;
-  const dateLike = head.slice(1).filter(Boolean).map(normalizeDateFlexible).filter(Boolean);
-  return dateLike.length >= 1;
+  return findRoutineMatrixHeaderIndex(aoa) !== -1;
 }
 
 function convertRoutineMatrixSheetToRows(sheetName, aoa){
-  const header = aoa[0] || [];
+  const headerIndex = findRoutineMatrixHeaderIndex(aoa);
+  if (headerIndex === -1) return [];
+  const header = aoa[headerIndex] || [];
   const dates = header.slice(1).map(normalizeDateFlexible);
   const jobName = String(sheetName || 'Routine Job').replace(/\(.*?\)/g, '').trim() || 'Routine Job';
   const ownerId = `JOB_${jobName.replace(/\s+/g, '_').toUpperCase()}`;
   const ownerName = `${jobName} Team`;
   const out = [];
 
-  aoa.slice(1).forEach((r) => {
+  aoa.slice(headerIndex + 1).forEach((r) => {
     const taskName = String(r[0] || '').trim();
     if (!taskName) return;
     for (let i = 1; i < r.length; i += 1) {
       const mark = String(r[i] ?? '').trim().toLowerCase();
       const date = dates[i - 1];
       if (!date) continue;
-      const required = ['y', 'yes', '1', 'true', 'ok', '✓'].includes(mark);
+      const required = ['y', 'yes', '1', 'true', 'ok', '✓', '/', 'v'].includes(mark);
       out.push({
         category: 'Routine',
         planDate: date,
