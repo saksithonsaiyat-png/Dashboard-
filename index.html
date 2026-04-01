@@ -94,13 +94,13 @@
 <!-- Action Buttons -->
 <div class="flex flex-wrap gap-3 mb-6 items-center justify-end">
   <button onclick="document.getElementById('instructionsModal').showModal()" class="chip bg-sky-900/40 border-sky-500/50 text-sky-200 hover:bg-sky-800/60 font-medium">
-    <i class="fa-solid fa-book mr-1"></i> คู่มือ & โค้ดเชื่อมต่อ Excel 365
+    <i class="fa-solid fa-book mr-1"></i> คู่มือ & โค้ดเชื่อมต่อ
   </button>
   <button id="downloadTemplateBtn" class="chip bg-slate-800 hover:bg-slate-700">
     <i class="fa-solid fa-download mr-1"></i> โหลดตัวอย่าง CSV
   </button>
   <label class="chip cursor-pointer bg-emerald-900/40 border-emerald-500/50 text-emerald-200 hover:bg-emerald-800/60 font-medium">
-    <i class="fa-solid fa-file-excel mr-1"></i> อัปโหลดไฟล์ Excel / CSV อัปเดตงาน
+    <i class="fa-solid fa-file-excel mr-1"></i> อัปโหลดไฟล์ Excel อัปเดตงาน
     <input id="excelUpload" type="file" accept=".xlsx,.xls,.csv" class="hidden" />
   </label>
 </div>
@@ -169,101 +169,34 @@
 <!-- ================= MODAL: INSTRUCTIONS & SCRIPT ================= -->
 <dialog id="instructionsModal" class="bg-slate-900 border border-slate-600 rounded-xl p-0 text-slate-200 w-11/12 max-w-4xl shadow-2xl backdrop:bg-black/70">
   <div class="flex justify-between items-center bg-slate-800 p-4 border-b border-slate-700">
-    <h2 class="text-xl font-bold text-white"><i class="fa-solid fa-book text-sky-400 mr-2"></i>คู่มือการใช้งาน & การเชื่อมต่อหลังบ้าน</h2>
+    <h2 class="text-xl font-bold text-white"><i class="fa-solid fa-book text-sky-400 mr-2"></i>คู่มือการใช้งานระบบ Excel Reader</h2>
     <button onclick="document.getElementById('instructionsModal').close()" class="text-slate-400 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
   </div>
   
   <div class="p-6 overflow-y-auto max-h-[75vh] space-y-6 text-sm">
     
-    <!-- Section 1: How it works -->
+    <!-- Section 1: Auto Detection -->
     <div>
-      <h3 class="text-lg font-semibold text-emerald-400 mb-2">1. การทำงานของระบบ (How it works)</h3>
-      <ul class="list-disc pl-5 space-y-1 text-slate-300">
-        <li>ระบบนี้สามารถ <b>อัปโหลดไฟล์ Excel / CSV</b> เข้ามาเพื่อคำนวณ Progress ของงานแบบอัตโนมัติ</li>
-        <li><b>Routine (งานประจำ):</b> ระบบจะกรองจากวันที่ (Plan Date) ถ้าระบุว่า `required = false` (หรือ No) งานนั้นจะไม่แสดงในวันนั้น</li>
-        <li><b>Adhoc (งานโปรเจค/สั่งการ):</b> ระบบจะติดตามจาก `deadline` และคำนวณสถานะ Overdue (เลยกำหนด) หรือ Warning (ใกล้ถึงกำหนด 1-2 วัน)</li>
-        <li>เมื่อแก้ไข Progress (1-100%) หรือติ๊กถูกว่าเสร็จแล้วบนหน้าเว็บ ระบบจะปรับสถานะให้และกราฟจะอัปเดตทันที</li>
+      <h3 class="text-lg font-semibold text-emerald-400 mb-2">1. ระบบอ่านไฟล์อัจฉริยะ (Smart Reader)</h3>
+      <p class="text-slate-300">ระบบนี้รองรับการอัปโหลดไฟล์ Excel <b>ทั้ง 2 รูปแบบ</b> โดยอัตโนมัติ ไม่ต้องตั้งค่าใดๆ เพิ่มเติม:</p>
+      <ul class="list-disc pl-5 mt-2 space-y-1 text-slate-300">
+        <li><b>แบบ Matrix (ตารางแนวนอน):</b> เช่น มีคอลัมน์ `Task` และหัวคอลัมน์ถัดๆ ไปเป็นวันที่ (เช่น `01/01/2026`) ระบบจะสแกนหาตัวอักษร <code class="bg-slate-800 px-1 rounded text-sky-300">Y</code> ในตาราง และแปลงเป็นงานประจำวันให้อัตโนมัติ</li>
+        <li><b>แบบ List (ตารางแนวตั้ง):</b> รูปแบบมาตรฐานที่มีคอลัมน์ category, planDate, taskName ฯลฯ</li>
       </ul>
     </div>
 
-    <!-- Section 2: Excel Columns -->
+    <!-- Section 2: Excel Matrix Rules -->
     <div>
-      <h3 class="text-lg font-semibold text-yellow-400 mb-2">2. วิธีตั้งชื่อหัวคอลัมน์ใน Excel (จำเป็น)</h3>
-      <p class="mb-2 text-slate-300">เพื่อให้สคริปต์อ่านค่าได้ถูกต้อง แถวแรกของ Excel ต้องมีชื่อคอลัมน์ดังนี้ (ตัวพิมพ์เล็กหรือใหญ่ก็ได้):</p>
-      <div class="overflow-x-auto border border-slate-700 rounded-lg">
-        <table class="w-full text-left bg-slate-800/50">
-          <thead class="bg-slate-700 text-slate-200">
-            <tr><th class="p-2">ชื่อคอลัมน์</th><th class="p-2">ความหมาย / ตัวอย่างข้อมูล</th></tr>
-          </thead>
-          <tbody class="divide-y divide-slate-700 text-slate-300">
-            <tr><td class="p-2 font-mono text-sky-300">category</td><td class="p-2">ใส่คำว่า <code class="bg-slate-900 px-1 rounded">Routine</code> หรือ <code class="bg-slate-900 px-1 rounded">Adhoc</code></td></tr>
-            <tr><td class="p-2 font-mono text-sky-300">planDate</td><td class="p-2">วันที่ต้องทำ (สำหรับ Routine) รูปแบบ YYYY-MM-DD เช่น <code class="bg-slate-900 px-1 rounded">2026-04-01</code></td></tr>
-            <tr><td class="p-2 font-mono text-sky-300">jobName</td><td class="p-2">ชื่อกลุ่มงาน เช่น <code class="bg-slate-900 px-1 rounded">Finance</code>, <code class="bg-slate-900 px-1 rounded">IT Support</code></td></tr>
-            <tr><td class="p-2 font-mono text-sky-300">taskName</td><td class="p-2">ชื่องาน (หรือใช้คอลัมน์ title สำหรับ Adhoc ก็ได้)</td></tr>
-            <tr><td class="p-2 font-mono text-sky-300">required</td><td class="p-2">เฉพาะ Routine วันนี้ต้องทำไหม? ใส่ <code class="bg-slate-900 px-1 rounded">Yes</code> หรือ <code class="bg-slate-900 px-1 rounded">No</code></td></tr>
-            <tr><td class="p-2 font-mono text-sky-300">ownerName</td><td class="p-2">ชื่อผู้รับผิดชอบงาน เช่น สมชาย ใจดี</td></tr>
-            <tr><td class="p-2 font-mono text-sky-300">deadline</td><td class="p-2">กำหนดส่งงาน (สำหรับ Adhoc) รูปแบบ YYYY-MM-DD</td></tr>
-            <tr><td class="p-2 font-mono text-sky-300">progress</td><td class="p-2">ความคืบหน้า 0 ถึง 100 (ใส่เป็นตัวเลข)</td></tr>
-            <tr><td class="p-2 font-mono text-sky-300">workStatus</td><td class="p-2">สถานะงาน <code class="bg-slate-900 px-1 rounded">not_started</code>, <code class="bg-slate-900 px-1 rounded">in_progress</code>, <code class="bg-slate-900 px-1 rounded">done</code></td></tr>
-          </tbody>
-        </table>
+      <h3 class="text-lg font-semibold text-yellow-400 mb-2">2. คำแนะนำสำหรับไฟล์แบบ Matrix (ของลูกค้า)</h3>
+      <p class="mb-2 text-slate-300">เพื่อให้ระบบอ่านไฟล์ Matrix ได้แม่นยำที่สุด ควรจัดไฟล์ดังนี้:</p>
+      <div class="overflow-x-auto border border-slate-700 rounded-lg p-4 bg-slate-800/50">
+        <ul class="list-disc pl-5 space-y-2 text-slate-300">
+          <li><b>หัวคอลัมน์ชื่องาน:</b> ควรมีคำว่า <code class="text-sky-300 font-mono">Task</code>, <code class="text-sky-300 font-mono">งาน</code> หรือ <code class="text-sky-300 font-mono">หัวข้อ</code></li>
+          <li><b>หัวคอลัมน์ผู้รับผิดชอบ (ถ้ามี):</b> ควรมีคำว่า <code class="text-sky-300 font-mono">PIC</code>, <code class="text-sky-300 font-mono">Owner</code> หรือ <code class="text-sky-300 font-mono">รับผิดชอบ</code></li>
+          <li><b>คอลัมน์วันที่:</b> ต้องเป็นรูปแบบวันที่ที่โปรแกรม Excel มองเห็น หรือพิมพ์ในรูปแบบ <code class="text-sky-300 font-mono">DD/MM/YYYY</code> เช่น 01/04/2026</li>
+          <li><b>การระบุงาน:</b> ในช่องตาราง ใส่อะไรก็ได้เพื่อบอกว่าวันนั้นต้องทำ เช่น <code class="text-sky-300 font-mono">Y</code>, <code class="text-sky-300 font-mono">Yes</code>, <code class="text-sky-300 font-mono">1</code> หรือ <code class="text-sky-300 font-mono">ทำ</code></li>
+        </ul>
       </div>
-    </div>
-
-    <!-- Section 3: Office Script -->
-    <div>
-      <h3 class="text-lg font-semibold text-purple-400 mb-2">3. สคริปต์เชื่อมต่อหลังบ้าน (Excel 365 Office Script)</h3>
-      <p class="mb-2 text-slate-300">หากลูกค้าต้องการนำ Dashboard นี้ไปฝังใน Sharepoint หรือต่อ API อัตโนมัติ สามารถใช้ <b>Power Automate</b> ร่วมกับ <b>Office Scripts</b> ด้านล่างนี้ โดยนำไปสร้างในเมนู Automate บน Excel 365</p>
-      
-      <div class="relative bg-[#1e1e1e] rounded-lg border border-slate-700 overflow-hidden">
-        <div class="bg-slate-800 text-xs text-slate-400 p-2 border-b border-slate-700 flex justify-between">
-          <span>getTasksData.ts (Office Script)</span>
-          <button onclick="navigator.clipboard.writeText(document.getElementById('officeScriptCode').innerText); alert('Copied!');" class="hover:text-white"><i class="fa-regular fa-copy"></i> Copy</button>
-        </div>
-        <pre class="p-4 overflow-x-auto text-sky-200 text-xs font-mono" id="officeScriptCode">
-function main(workbook: ExcelScript.Workbook): string {
-  // 1. ดึง Sheet ที่ชื่อ "Tasks" หรือดึง Sheet แรก
-  let sheet = workbook.getWorksheet("Tasks") || workbook.getWorksheets()[0];
-  
-  // 2. ดึง Table ตัวแรกใน Sheet
-  let table = sheet.getTables()[0];
-  if (!table) return JSON.stringify({ error: "No table found in the sheet" });
-
-  // 3. อ่านหัวคอลัมน์ และ ข้อมูล
-  let headerRange = table.getHeaderRowRange().getValues()[0];
-  let dataRange = table.getRangeBetweenHeaderAndTotal().getValues();
-
-  let tasks = [];
-
-  // 4. แปลงข้อมูลแถวให้เป็น JSON Object
-  for (let i = 0; i < dataRange.length; i++) {
-    let row = dataRange[i];
-    let taskObj: { [key: string]: any } = {};
-    
-    for (let j = 0; j < headerRange.length; j++) {
-      let headerName = headerRange[j].toString().trim();
-      let value = row[j];
-      
-      // แปลงวันที่ Excel Serial (ถ้ามี) เป็น YYYY-MM-DD
-      if (typeof value === "number" && (headerName.toLowerCase().includes("date") || headerName.toLowerCase() === "deadline")) {
-        let date = new Date(Math.round((value - 25569) * 86400 * 1000));
-        taskObj[headerName] = date.toISOString().split("T")[0];
-      } else {
-        taskObj[headerName] = value;
-      }
-    }
-    // เพิ่มเฉพาะแถวที่มีข้อมูล
-    if(taskObj["taskName"] || taskObj["title"]) {
-      tasks.push(taskObj);
-    }
-  }
-
-  // ส่งค่ากลับเป็น JSON String เพื่อให้ Power Automate หรือ API นำไปใช้ต่อ
-  return JSON.stringify(tasks);
-}
-</pre>
-      </div>
-      <p class="mt-2 text-xs text-slate-400"><b>ไอเดียการต่อยอด:</b> ใช้ Power Automate ตั้งเวลา (Scheduled Cloud Flow) ให้รันสคริปต์นี้ทุกๆ 1 ชั่วโมง แล้วส่งผลลัพธ์ JSON ไปอัปเดตไฟล์บนเซิร์ฟเวอร์ หรือส่งเข้า REST API เพื่อให้หน้า Dashboard แสดงผล Real-time</p>
     </div>
 
   </div>
@@ -278,72 +211,23 @@ function main(workbook: ExcelScript.Workbook): string {
 // ==========================================
 const appState = { 
   selectedEmployee: 'all', selectedCategory: 'all', selectedJobType: 'all', 
-  date: new Date('2026-04-01'), // ค่าเริ่มต้นเป็น 01-04-2026 ตามความต้องการ
+  date: new Date('2026-04-01'), 
   tasks: [], employees: [], 
   monthlyChart: null, dailyTrendChart: null 
 };
 const brandingStorageKey = 'dashboardBranding';
 const storageTaskKey = 'dashboardTasks';
 
-// ข้อมูลจำลอง (อัปเดตเพิ่มปริมาณงานให้เห็นภาพรวมชัดเจน)
 const sampleTasks = [
-  // --- EXECUTIVE & MANAGEMENT ---
-  {id:101, category:'Adhoc', title:'อนุมัติงบประมาณไตรมาส 2', ownerId:'EMP000', ownerName:'วิชัย บริหาร', jobType:'Executive', receiveDate:'2026-03-25', deadline:'2026-04-02', progress:80, workStatus:'in_progress'},
-  {id:102, category:'Adhoc', title:'ประชุม Board of Directors', ownerId:'EMP000', ownerName:'วิชัย บริหาร', jobType:'Executive', receiveDate:'2026-03-28', deadline:'2026-04-05', progress:0, workStatus:'not_started'},
-  
   // --- FINANCE & ACCOUNTING ---
   {id:1, category:'Routine', planDate:'2026-04-01', jobName:'Finance', taskName:'กระทบยอดเงินสด', required:true, ownerId:'EMP001', ownerName:'สมชาย ใจดี', jobType:'Daily Ops', progress:100, workStatus:'done', actualDelivery:'2026-04-01'},
   {id:2, category:'Routine', planDate:'2026-04-01', jobName:'Finance', taskName:'ตรวจสอบยอดขายสาขา', required:true, ownerId:'EMP001', ownerName:'สมชาย ใจดี', jobType:'Daily Ops', progress:60, workStatus:'in_progress'},
-  {id:3, category:'Routine', planDate:'2026-04-01', jobName:'Finance', taskName:'อัปโหลดรายงานภาษี', required:false, ownerId:'EMP001', ownerName:'สมชาย ใจดี', jobType:'Compliance', progress:0, workStatus:'not_started'},
-  {id:31, category:'Adhoc', title:'สรุปค่าใช้จ่ายเดินทาง Q1', ownerId:'EMP001', ownerName:'สมชาย ใจดี', jobType:'Finance', receiveDate:'2026-03-26', deadline:'2026-03-30', progress:100, workStatus:'done', actualDelivery:'2026-03-29'},
-
-  // --- OPERATIONS & LOGISTICS ---
+  // --- OPERATIONS ---
   {id:4, category:'Routine', planDate:'2026-04-01', jobName:'Operations', taskName:'เช็คลูกค้าค้างส่งสินค้า', required:true, ownerId:'EMP002', ownerName:'สมหญิง พัฒนา', jobType:'Operations', progress:100, workStatus:'done', actualDelivery:'2026-04-01'},
   {id:5, category:'Routine', planDate:'2026-04-01', jobName:'Operations', taskName:'สรุปต้นทุนขนส่งรายวัน', required:true, ownerId:'EMP002', ownerName:'สมหญิง พัฒนา', jobType:'Operations', progress:20, workStatus:'in_progress'},
+  // --- ADHOC ---
+  {id:31, category:'Adhoc', title:'สรุปค่าใช้จ่ายเดินทาง Q1', ownerId:'EMP001', ownerName:'สมชาย ใจดี', jobType:'Finance', receiveDate:'2026-03-26', deadline:'2026-03-30', progress:100, workStatus:'done', actualDelivery:'2026-03-29'},
   {id:23, category:'Adhoc', title:'อบรมทีมเรื่องมาตรฐานใหม่ ISO', ownerId:'EMP002', ownerName:'สมหญิง พัฒนา', jobType:'Training', receiveDate:'2026-03-20', deadline:'2026-03-31', progress:90, workStatus:'in_progress'},
-  {id:16, category:'Routine', planDate:'2026-04-01', jobName:'Logistics', taskName:'ยืนยันรอบรถจัดส่งประจำวัน', required:true, ownerId:'EMP009', ownerName:'อภิชาติ นาวา', jobType:'Logistics', progress:100, workStatus:'done'},
-  {id:17, category:'Routine', planDate:'2026-04-01', jobName:'Logistics', taskName:'อัปเดต SLA ขนส่งในระบบ', required:true, ownerId:'EMP009', ownerName:'อภิชาติ นาวา', jobType:'Logistics', progress:10, workStatus:'in_progress'},
-  {id:33, category:'Adhoc', title:'ติดตามเคสสินค้าระหว่างทางสูญหาย', ownerId:'EMP009', ownerName:'อภิชาติ นาวา', jobType:'Customer Care', receiveDate:'2026-03-28', deadline:'2026-03-31', progress:50, workStatus:'in_progress'},
-
-  // --- WAREHOUSE ---
-  {id:6, category:'Routine', planDate:'2026-04-01', jobName:'Warehouse', taskName:'ตรวจสต๊อกสินค้ากลุ่ม A (High Value)', required:true, ownerId:'EMP003', ownerName:'อนันต์ ทดสอบ', jobType:'Warehouse', progress:0, workStatus:'not_started'},
-  {id:22, category:'Adhoc', title:'วิเคราะห์พื้นที่จัดเก็บสินค้าใหม่', ownerId:'EMP003', ownerName:'อนันต์ ทดสอบ', jobType:'Analysis', receiveDate:'2026-03-27', deadline:'2026-04-02', progress:15, workStatus:'in_progress'},
-  {id:34, category:'Adhoc', title:'จัดเตรียมสถานที่สำหรับ Audit ภายใน', ownerId:'EMP003', ownerName:'อนันต์ ทดสอบ', jobType:'Internal Audit', receiveDate:'2026-03-25', deadline:'2026-04-02', progress:65, workStatus:'in_progress'},
-
-  // --- LEGAL & ADMIN ---
-  {id:21, category:'Adhoc', title:'แก้ไขสัญญาลูกค้ารายใหญ่ (VIP)', ownerId:'EMP004', ownerName:'นวลจันทร์ ศรี', jobType:'Legal', receiveDate:'2026-03-28', deadline:'2026-03-31', progress:80, workStatus:'in_progress'},
-  {id:29, category:'Adhoc', title:'รีวิวสัญญาผู้รับเหมาซ่อมบำรุง', ownerId:'EMP004', ownerName:'นวลจันทร์ ศรี', jobType:'Legal', receiveDate:'2026-03-30', deadline:'2026-04-03', progress:10, workStatus:'in_progress'},
-
-  // --- MARKETING ---
-  {id:103, category:'Routine', planDate:'2026-04-01', jobName:'Marketing', taskName:'อัปเดต Social Media Content', required:true, ownerId:'EMP005', ownerName:'มาลี จิตดี', jobType:'Marketing', progress:100, workStatus:'done'},
-  {id:24, category:'Adhoc', title:'วางแผนโปรโมชั่นเดือนเมษายน', ownerId:'EMP005', ownerName:'มาลี จิตดี', jobType:'Marketing', receiveDate:'2026-03-29', deadline:'2026-04-01', progress:45, workStatus:'in_progress'},
-  {id:28, category:'Adhoc', title:'ออกแบบแคมเปญ Songkran Festival', ownerId:'EMP005', ownerName:'มาลี จิตดี', jobType:'Marketing', receiveDate:'2026-03-27', deadline:'2026-04-02', progress:70, workStatus:'in_progress'},
-
-  // --- SALES ---
-  {id:10, category:'Routine', planDate:'2026-04-01', jobName:'Sales', taskName:'เช็คยอดขายเทียบเป้ารายวัน', required:true, ownerId:'EMP006', ownerName:'ภัทรา พูลทรัพย์', jobType:'Sales Ops', progress:75, workStatus:'in_progress'},
-  {id:11, category:'Routine', planDate:'2026-04-01', jobName:'Sales', taskName:'อัปเดต Pipeline ลูกค้าใน CRM', required:true, ownerId:'EMP006', ownerName:'ภัทรา พูลทรัพย์', jobType:'Sales Ops', progress:100, workStatus:'done'},
-  {id:26, category:'Adhoc', title:'เจรจาต่อรองลูกค้าโปรเจคพิเศษ B', ownerId:'EMP006', ownerName:'ภัทรา พูลทรัพย์', jobType:'Sales', receiveDate:'2026-03-31', deadline:'2026-04-04', progress:35, workStatus:'in_progress'},
-
-  // --- HR ---
-  {id:12, category:'Routine', planDate:'2026-04-01', jobName:'HR', taskName:'ตรวจสอบเวลาเข้างานและแจ้งสาย', required:true, ownerId:'EMP007', ownerName:'กานต์กมล วงศ์ดี', jobType:'HR Daily', progress:100, workStatus:'done'},
-  {id:13, category:'Routine', planDate:'2026-04-01', jobName:'HR', taskName:'ดึงรายงาน OT จากเครื่องสแกน', required:true, ownerId:'EMP007', ownerName:'กานต์กมล วงศ์ดี', jobType:'HR Daily', progress:40, workStatus:'in_progress'},
-  {id:32, category:'Adhoc', title:'จัดทำแผนอัตรากำลังพล (Manpower) Q2', ownerId:'EMP007', ownerName:'กานต์กมล วงศ์ดี', jobType:'HR Planning', receiveDate:'2026-03-31', deadline:'2026-04-07', progress:5, workStatus:'not_started'},
-
-  // --- IT SUPPORT ---
-  {id:14, category:'Routine', planDate:'2026-04-01', jobName:'IT Support', taskName:'ตรวจสอบสถานะเซิร์ฟเวอร์หลัก', required:true, ownerId:'EMP008', ownerName:'วิษณุ เทพไชย', jobType:'IT Ops', progress:100, workStatus:'done'},
-  {id:15, category:'Routine', planDate:'2026-04-01', jobName:'IT Support', taskName:'สำรองข้อมูล (Backup) ประจำวัน', required:true, ownerId:'EMP008', ownerName:'วิษณุ เทพไชย', jobType:'IT Ops', progress:55, workStatus:'in_progress'},
-  {id:30, category:'Adhoc', title:'ทำ UAT ทดสอบระบบใบแจ้งหนี้ใหม่', ownerId:'EMP008', ownerName:'วิษณุ เทพไชย', jobType:'IT Project', receiveDate:'2026-03-29', deadline:'2026-04-01', progress:85, workStatus:'in_progress'},
-
-  // --- DATA & ANALYSIS ---
-  {id:104, category:'Routine', planDate:'2026-04-01', jobName:'Data Team', taskName:'ดึง Data Lake เข้า PowerBI', required:true, ownerId:'EMP010', ownerName:'เจษฎา มั่นคง', jobType:'Data', progress:100, workStatus:'done'},
-  {id:27, category:'Adhoc', title:'วิเคราะห์สาเหตุลูกค้ายกเลิกบริการ (Churn) เดือนมีนาคม', ownerId:'EMP010', ownerName:'เจษฎา มั่นคง', jobType:'Data Analysis', receiveDate:'2026-03-30', deadline:'2026-04-06', progress:20, workStatus:'in_progress'},
-  
-  // --- PREVIOUS DAY ROUTINE (For Chart Data 2026-03-31) ---
-  {id:7, category:'Routine', planDate:'2026-03-31', jobName:'Finance', taskName:'กระทบยอดเงินสด', required:true, ownerId:'EMP001', ownerName:'สมชาย ใจดี', progress:100, workStatus:'done', actualDelivery:'2026-03-31'},
-  {id:8, category:'Routine', planDate:'2026-03-31', jobName:'Operations', taskName:'เช็คลูกค้าค้างส่งสินค้า', required:true, ownerId:'EMP002', ownerName:'สมหญิง พัฒนา', progress:100, workStatus:'done', actualDelivery:'2026-03-31'},
-  {id:9, category:'Routine', planDate:'2026-03-31', jobName:'Warehouse', taskName:'ตรวจสต๊อกสินค้า', required:true, ownerId:'EMP003', ownerName:'อนันต์ ทดสอบ', progress:100, workStatus:'done', actualDelivery:'2026-03-31'},
-  {id:105, category:'Routine', planDate:'2026-03-31', jobName:'Sales', taskName:'เช็คยอดขายเทียบเป้ารายวัน', required:true, ownerId:'EMP006', ownerName:'ภัทรา พูลทรัพย์', progress:100, workStatus:'done', actualDelivery:'2026-03-31'},
-  {id:106, category:'Routine', planDate:'2026-03-31', jobName:'IT Support', taskName:'ตรวจสอบสถานะเซิร์ฟเวอร์หลัก', required:true, ownerId:'EMP008', ownerName:'วิษณุ เทพไชย', progress:100, workStatus:'done', actualDelivery:'2026-03-31'}
 ];
 
 // ==========================================
@@ -366,7 +250,6 @@ function normalizeWorkStatus(v){
   return 'not_started'; 
 }
 
-// LocalStorage Persistence
 function loadBranding(){
   const stored = JSON.parse(localStorage.getItem(brandingStorageKey)||'{}');
   el('companyNameInput').value = stored.companyName || '';
@@ -376,7 +259,6 @@ function loadBranding(){
 function saveBranding(partial){ const curr=JSON.parse(localStorage.getItem(brandingStorageKey)||'{}'); localStorage.setItem(brandingStorageKey, JSON.stringify({...curr,...partial})); }
 function saveTasks(){ localStorage.setItem(storageTaskKey, JSON.stringify(appState.tasks)); }
 
-// Calculate Status for Adhoc/Routine
 function computeStatus(t){
   if ((t.actualDelivery && t.actualDelivery <= fmtDate(appState.date)) || normalizeProgress(t.progress)>=100 || t.workStatus==='done') return 'success';
   const today = fmtDate(appState.date);
@@ -408,7 +290,6 @@ function renderSummary(tasks){
   const routine = tasks.filter(t=>t.category==='Routine');
   const routineDone = routine.filter(t=>computeStatus(t)==='success').length;
   const percent = routine.length ? Math.round((routineDone/routine.length)*100) : 0;
-  
   const adhoc = tasks.filter(t=>t.category==='Adhoc');
   
   el('routinePercent').textContent = `${percent}%`;
@@ -422,7 +303,7 @@ function renderSummary(tasks){
 function renderRoutine(tasks){
   const list = el('routineList');
   const routine = tasks.filter(t=>t.category==='Routine');
-  if(!routine.length){ list.innerHTML='<div class="h-full flex items-center justify-center p-6 border border-dashed border-slate-700 rounded-xl"><p class="text-sm text-slate-400"><i class="fa-solid fa-mug-hot mr-2"></i>ไม่มี Routine ในวันที่เลือก (หรือกำหนด required = No)</p></div>'; return; }
+  if(!routine.length){ list.innerHTML='<div class="h-full flex items-center justify-center p-6 border border-dashed border-slate-700 rounded-xl"><p class="text-sm text-slate-400"><i class="fa-solid fa-mug-hot mr-2"></i>ไม่มี Routine ในวันที่เลือก</p></div>'; return; }
   
   const jobs = {};
   routine.forEach(t=>{ const key=t.jobName||'General'; (jobs[key] ||= []).push(t); });
@@ -463,7 +344,6 @@ function renderRoutine(tasks){
     </details>`;
   }).join('');
 
-  // Attach Event Listeners
   list.querySelectorAll('[data-rcheck]').forEach(i=>i.onchange=e=>{updateTaskById(Number(e.target.dataset.rcheck), t=>{t.workStatus=e.target.checked?'done':'not_started'; t.progress=e.target.checked?100:0; t.actualDelivery=e.target.checked?fmtDate(appState.date):'';});});
   list.querySelectorAll('[data-rprog]').forEach(i=>i.onchange=e=>{updateTaskById(Number(e.target.dataset.rprog), t=>{t.progress=normalizeProgress(e.target.value); t.workStatus=t.progress>=100?'done':t.progress>0?'in_progress':'not_started'; t.actualDelivery=t.progress>=100?fmtDate(appState.date):'';});});
   list.querySelectorAll('[data-rstatus]').forEach(i=>i.onchange=e=>{updateTaskById(Number(e.target.dataset.rstatus), t=>{t.workStatus=e.target.value; if(t.workStatus==='done'){t.progress=100;t.actualDelivery=fmtDate(appState.date);} else if(t.workStatus==='in_progress'){t.progress=Math.max(1,normalizeProgress(t.progress)); t.actualDelivery='';} else {t.progress=0;t.actualDelivery='';}});});
@@ -509,7 +389,6 @@ function renderAdhoc(tasks){
 }
 
 function renderCharts(tasks){
-  // 1. Monthly (Workload by Person)
   const people = [...new Set(tasks.map(t=>t.ownerName))].sort();
   const success = people.map(p=>tasks.filter(t=>t.ownerName===p&&computeStatus(t)==='success').length);
   const pending = people.map(p=>tasks.filter(t=>t.ownerName===p&&['pending','warning'].includes(computeStatus(t))).length);
@@ -530,14 +409,11 @@ function renderCharts(tasks){
     }
   });
 
-  // 2. Daily Trend (Overall 7 Days)
   const labels=[]; const rates=[];
   for(let i=6;i>=0;i--){ 
     const d=new Date(appState.date); d.setDate(d.getDate()-i); 
     const day=fmtDate(d); 
     labels.push(d.toLocaleDateString('th-TH',{day:'2-digit',month:'short'}));
-    
-    // คำนวณ % สำหรับวันนั้นๆ
     const dayTasks = appState.tasks.filter(t=> t.category==='Routine' ? (t.required!==false && (t.planDate||t.receiveDate)===day) : (t.receiveDate<=day));
     const done = dayTasks.filter(t=> (t.actualDelivery && t.actualDelivery<=day) || normalizeProgress(t.progress)>=100).length;
     rates.push(dayTasks.length ? Math.round(done/dayTasks.length*100) : 0);
@@ -551,17 +427,13 @@ function renderCharts(tasks){
       datasets:[{
         label:'Daily Task Completion %',
         data:rates,
-        borderColor:'#38bdf8', backgroundColor:'rgba(56,189,248,.15)',
-        fill:true, tension:.4, pointBackgroundColor:'#0284c7', pointRadius:4
+        borderColor:'#38bdf8', backgroundColor:'rgba(56,189,248,.15)', fill:true, tension:.4, pointBackgroundColor:'#0284c7', pointRadius:4
       }]
     },
     options:{
       responsive:true, maintainAspectRatio:false,
       plugins: { legend: { display:false } },
-      scales:{ 
-        y:{min:0,max:100, ticks:{color:'#94a3b8', callback:v=>v+'%'}, grid:{color:'rgba(148,163,184,0.1)'}},
-        x:{ticks:{color:'#94a3b8'}, grid:{display:false}}
-      }
+      scales:{ y:{min:0,max:100, ticks:{color:'#94a3b8', callback:v=>v+'%'}, grid:{color:'rgba(148,163,184,0.1)'}}, x:{ticks:{color:'#94a3b8'}, grid:{display:false}} }
     }
   });
 }
@@ -573,18 +445,47 @@ function setupDropdowns(reset=true){
   appState.employees=[...new Map(appState.tasks.map(t=>[t.ownerId,{id:t.ownerId,name:t.ownerName}])).values()];
   const emp = el('employeeSelect');
   emp.innerHTML = `<option value="all">พนักงานทั้งหมด (All)</option>` + appState.employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
-  
   const jobTypes = [...new Set(appState.tasks.map(t=>t.jobType||'General'))].sort();
   el('jobTypeSelect').innerHTML = `<option value="all">ทุกประเภทงาน (All)</option>` + jobTypes.map(j=>`<option value="${j}">${j}</option>`).join('');
-  
   if(reset){ appState.selectedEmployee='all'; appState.selectedJobType='all'; appState.selectedCategory='all'; }
   emp.value=appState.selectedEmployee; el('categorySelect').value=appState.selectedCategory; el('jobTypeSelect').value=appState.selectedJobType;
 }
 
 // ==========================================
-// 4. Excel Upload & Export Logic
+// 4. SMART EXCEL UPLOAD LOGIC (List & Matrix Support)
 // ==========================================
-function parseExcelRows(rows){
+async function importExcel(file){ 
+  try {
+    const data=await file.arrayBuffer(); 
+    const wb=XLSX.read(data,{type:'array'}); 
+    const ws=wb.Sheets[wb.SheetNames[0]]; 
+    
+    // ดึงข้อมูลเป็น Array แบบดิบๆ เพื่อเช็ค Header
+    const rawData = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    if(rawData.length < 2) { alert('ไฟล์ไม่มีข้อมูล'); return; }
+
+    const headers = rawData[0];
+    const headerStr = headers.join(',').toLowerCase();
+
+    // เช็คว่าเป็น List ปกติ หรือ Matrix
+    const isListFormat = headerStr.includes('category') && (headerStr.includes('taskname') || headerStr.includes('title'));
+
+    if (isListFormat) {
+      // 1. กระบวนการสำหรับไฟล์ตารางแบบ List (แบบเดิม)
+      const rows = XLSX.utils.sheet_to_json(ws, {defval: ''});
+      parseExcelListRows(rows);
+    } else {
+      // 2. กระบวนการสำหรับไฟล์ตารางแบบ Matrix (แบบลูกค้า)
+      parseExcelMatrixRows(rawData);
+    }
+  } catch(e) {
+    alert("เกิดข้อผิดพลาดในการอ่านไฟล์ Excel: " + e.message);
+    console.error(e);
+  }
+}
+
+// ฟังก์ชันอ่านไฟล์ List (ของเดิม)
+function parseExcelListRows(rows){
   const parsed = rows.map((r,i)=>({
     id: Date.now()+i,
     category: String(r.category||r.Category||'Adhoc'),
@@ -601,38 +502,103 @@ function parseExcelRows(rows){
     actualDelivery: normalizeDate(r.actualDelivery||r.ActualDelivery)||'',
     progress: normalizeProgress(r.progress||r.Progress),
     workStatus: normalizeWorkStatus(r.workStatus||r.WorkStatus)
-  })).filter(r=>r.ownerId && (r.taskName || r.title)); // ข้ามแถวว่าง
+  })).filter(r=>r.ownerId && (r.taskName || r.title)); 
 
-  if(!parsed.length){ alert('ไม่พบแถวข้อมูลที่ถูกต้อง กรุณาตรวจสอบชื่อคอลัมน์ (category, taskName, ownerName ฯลฯ)'); return; }
-  
-  // อัปเดตข้อมูลใหม่ทับหรือรวม (ในที่นี้ให้ทับของเดิมเพื่อความง่ายในการเดโม่)
+  if(!parsed.length){ alert('ไม่พบแถวข้อมูลที่ถูกต้อง กรุณาตรวจสอบชื่อคอลัมน์'); return; }
   appState.tasks = parsed;
+  finishImport(`นำเข้าข้อมูลแบบ List สำเร็จ ${parsed.length} รายการ`);
+}
+
+// ฟังก์ชันอ่านไฟล์ Matrix (อัปเกรดใหม่)
+function parseExcelMatrixRows(rawData){
+  const headers = rawData[0];
+  let taskNameColIdx = -1;
+  let ownerColIdx = -1;
+  const dateColumns = [];
+
+  // 1. วิเคราะห์หาคอลัมน์
+  headers.forEach((h, idx) => {
+    const hStr = String(h).trim().toLowerCase();
+    if (hStr.includes('task') || hStr.includes('งาน') || hStr.includes('หัวข้อ') || hStr.includes('description')) {
+        taskNameColIdx = idx;
+    } else if (hStr.includes('pic') || hStr.includes('owner') || hStr.includes('รับผิดชอบ') || hStr.includes('ผู้ทำ')) {
+        ownerColIdx = idx;
+    } else {
+        // ตรวจสอบว่าเป็นคอลัมน์วันที่หรือไม่
+        let dateStr = null;
+        if (typeof h === 'number' && h > 30000) { 
+            dateStr = normalizeDate(h); // แปลง Excel Serial Date
+        } else if (typeof h === 'string') {
+            const matchTH = h.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/); // รองรับ DD/MM/YYYY
+            if (matchTH) dateStr = `${matchTH[3]}-${matchTH[2].padStart(2,'0')}-${matchTH[1].padStart(2,'0')}`;
+            else {
+                const matchEN = h.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/); // รองรับ YYYY-MM-DD
+                if(matchEN) dateStr = `${matchEN[1]}-${matchEN[2].padStart(2,'0')}-${matchEN[3].padStart(2,'0')}`;
+            }
+        }
+        if (dateStr) dateColumns.push({ idx: idx, dateStr: dateStr });
+    }
+  });
+
+  if (taskNameColIdx === -1) taskNameColIdx = 0; // ถ้าหาไม่เจอ ให้เดาว่าคอลัมน์แรกคือชื่องาน
+
+  const newTasks = [];
+  let idCounter = Date.now();
+
+  // 2. ดึงข้อมูล
+  for (let i = 1; i < rawData.length; i++) {
+      const row = rawData[i];
+      const taskName = String(row[taskNameColIdx] || '').trim();
+      if (!taskName) continue; // ข้ามบรรทัดว่าง
+
+      const ownerName = ownerColIdx !== -1 ? String(row[ownerColIdx] || '').trim() : 'ไม่ระบุชื่อ';
+
+      // เช็คในแต่ละวัน
+      dateColumns.forEach(dateCol => {
+          const cellValue = String(row[dateCol.idx] || '').trim().toLowerCase();
+          // ถ้าระบุว่าต้องทำ (Y, Yes, 1, ทำ ฯลฯ)
+          if (['y', 'yes', '1', '✓', 'ok', 'ทำ', 'req'].includes(cellValue)) {
+              newTasks.push({
+                  id: idCounter++,
+                  category: 'Routine',
+                  planDate: dateCol.dateStr,
+                  jobName: 'งานประจำ (นำเข้า)', 
+                  taskName: taskName,
+                  required: true,
+                  ownerId: 'EMP_' + ownerName, // สร้าง ID ชั่วคราวจากชื่อ
+                  ownerName: ownerName,
+                  jobType: 'Matrix Data',
+                  receiveDate: dateCol.dateStr,
+                  deadline: dateCol.dateStr,
+                  progress: 0,
+                  workStatus: 'not_started',
+                  actualDelivery: ''
+              });
+          }
+      });
+  }
+
+  if (newTasks.length > 0) {
+      appState.tasks = newTasks; // เขียนทับข้อมูลเก่าด้วยข้อมูลจาก Matrix
+      finishImport(`นำเข้าข้อมูลรูปแบบตาราง Matrix สำเร็จ!\nพบงานที่ต้องทำแยกตามวันทั้งหมด ${newTasks.length} รายการ`);
+  } else {
+      alert('ระบบอ่านไฟล์ได้ แต่ไม่พบสัญลักษณ์การกำหนดงาน (ต้องมีตัวอักษร Y หรือ 1 ในช่องวันที่)');
+  }
+}
+
+function finishImport(msg){
   saveTasks();
   setupDropdowns();
   renderAll();
-  alert(`นำเข้าข้อมูลสำเร็จ ${parsed.length} รายการ`);
-}
-
-async function importExcel(file){ 
-  try {
-    const data=await file.arrayBuffer(); 
-    const wb=XLSX.read(data,{type:'array'}); 
-    const ws=wb.Sheets[wb.SheetNames[0]]; 
-    const rows=XLSX.utils.sheet_to_json(ws,{defval:''}); 
-    parseExcelRows(rows); 
-  } catch(e) {
-    alert("เกิดข้อผิดพลาดในการอ่านไฟล์ Excel");
-    console.error(e);
-  }
+  alert(msg);
 }
 
 function downloadTemplate(){
   const headers = ['category','planDate','jobName','taskName','required','ownerId','ownerName','jobType','receiveDate','deadline','progress','workStatus','actualDelivery','title'];
-  // เอาตัวอย่างสัก 20 รายการไปเป็น Template
   const csvRows = appState.tasks.slice(0,20).map(t=>[
     t.category, t.planDate||'', t.jobName||'', t.taskName||'', t.required===false?'No':'Yes', t.ownerId, t.ownerName, t.jobType||'General', t.receiveDate||'', t.deadline||'', t.progress||0, t.workStatus||'not_started', t.actualDelivery||'', t.title||''
   ]);
-  const csv = ['\uFEFF'+headers.join(','), ...csvRows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(','))].join('\n'); // Add BOM for Thai Excel
+  const csv = ['\uFEFF'+headers.join(','), ...csvRows.map(r=>r.map(v=>`"${String(v).replaceAll('"','""')}"`).join(','))].join('\n');
   const blob = new Blob([csv],{type:'text/csv;charset=utf-8;'});
   const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='Task_Template.csv'; a.click(); URL.revokeObjectURL(a.href);
 }
@@ -662,7 +628,6 @@ function bindEvents(){
   el('excelUpload').onchange=async e=>{const f=e.target.files?.[0]; if(f) await importExcel(f); e.target.value='';};
   el('downloadTemplateBtn').onclick=downloadTemplate;
   
-  // Branding
   el('companyNameInput').oninput=e=>{ const v=e.target.value; el('companyNameText').textContent=v||'Your Company Name'; saveBranding({companyName:v}); };
   el('logoUpload').onchange=e=>{ const f=e.target.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ const data=String(r.result||''); el('companyLogo').src=data; el('companyLogo').classList.remove('hidden'); el('logoFallback').classList.add('hidden'); saveBranding({logoDataUrl:data}); }; r.readAsDataURL(f); };
   el('clearLogoBtn').onclick=()=>{el('companyLogo').src=''; el('companyLogo').classList.add('hidden'); el('logoFallback').classList.remove('hidden'); saveBranding({logoDataUrl:''});};
@@ -682,9 +647,9 @@ function init(){
   renderAll();
 }
 
-// Start App
 init();
 </script>
 </body>
 </html>
+
 
