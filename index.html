@@ -54,7 +54,7 @@
       <button id="clearLogoBtn" type="button" class="chip">ล้างโลโก้</button>
     </div>
     <h1 class="text-2xl md:text-3xl font-bold text-white tracking-wide"><i class="fa-solid fa-gauge-high text-yellow-400 mr-2"></i>Executive Task Dashboard</h1>
-    <p class="text-slate-400 text-sm mt-1">อัปเดตระบบแยกหมวดหมู่อัตโนมัติจากชื่อ Sheet</p>
+    <p class="text-slate-400 text-sm mt-1">อัปเดตระบบ AI Parser อ่านไฟล์ได้ทุกนามสกุล (CSV/XLSX) แบบสมบูรณ์</p>
   </div>
 
   <div class="w-full xl:w-auto grid sm:grid-cols-2 xl:grid-cols-4 gap-3">
@@ -69,7 +69,7 @@
       </select>
     </div>
     <div class="glass-card px-3 py-2">
-      <label class="text-xs text-slate-400 block mb-1">ประเภทงาน (Sheet)</label>
+      <label class="text-xs text-slate-400 block mb-1">กลุ่มงาน / โปรเจกต์</label>
       <select id="jobTypeSelect" class="w-full bg-slate-900/70 border border-slate-700 rounded-lg px-3 py-2.5 text-sm"></select>
     </div>
     <div class="glass-card px-3 py-2">
@@ -88,7 +88,7 @@
   <div class="flex flex-wrap justify-between gap-2 mb-3">
     <h3 class="text-sm font-semibold text-white"><i class="fa-solid fa-file-excel text-emerald-400 mr-2"></i>อัปโหลดไฟล์งาน (Import Data)</h3>
     <div class="flex gap-2">
-      <label class="chip bg-sky-600 border-none text-white hover:bg-sky-500 font-bold"><i class="fa-solid fa-upload mr-1"></i>Import ไฟล์ลูกค้า<input id="excelUpload" type="file" accept=".xlsx,.xls,.csv" class="hidden" /></label>
+      <label class="chip bg-sky-600 border-none text-white hover:bg-sky-500 font-bold"><i class="fa-solid fa-upload mr-1"></i>Import ไฟล์<input id="excelUpload" type="file" accept=".xlsx,.xls,.csv" class="hidden" /></label>
       <button id="syncExcel365Btn" class="chip"><i class="fa-solid fa-cloud-arrow-down mr-1"></i>Sync Excel 365</button>
     </div>
   </div>
@@ -98,7 +98,7 @@
 <section class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
   <div class="glass-card p-4 border-l-4 border-emerald-500"><p class="text-xs text-slate-400">Routine Completion</p><h3 id="routinePercent" class="text-3xl font-bold text-emerald-400 mt-1">0%</h3><p id="routineCount" class="text-xs text-slate-400 mt-1">0/0 งาน</p></div>
   <div class="glass-card p-4 border-l-4 border-sky-500"><p class="text-xs text-slate-400">Adhoc Pending</p><h3 id="pendingCount" class="text-3xl font-bold text-sky-400 mt-1">0</h3><p class="text-xs text-slate-400 mt-1">กำลังดำเนินการ</p></div>
-  <div class="glass-card p-4 border-l-4 border-yellow-500"><p class="text-xs text-slate-400">Deadline ใกล้ถึง</p><h3 id="warningCount" class="text-3xl font-bold text-yellow-400 mt-1">0</h3><p class="text-xs text-slate-400 mt-1">ควรติดตาม</p></div>
+  <div class="glass-card p-4 border-l-4 border-yellow-500"><p class="text-xs text-slate-400">Deadline ใกล้ถึง</p><h3 id="warningCount" class="text-3xl font-bold text-yellow-400 mt-1">0</h3><p class="text-xs text-slate-400 mt-1">ควรติดตาม (1-2 วัน)</p></div>
   <div class="glass-card p-4 border-l-4 border-red-500"><p class="text-xs text-slate-400">Overdue</p><h3 id="overdueCount" class="text-3xl font-bold text-red-400 mt-1">0</h3><p class="text-xs text-slate-400 mt-1">เลยกำหนด</p></div>
 </section>
 
@@ -121,7 +121,7 @@
     <div class="overflow-auto">
       <table class="w-full text-sm text-left">
         <thead class="sticky top-0 bg-slate-900/90 text-slate-400 text-[11px] uppercase tracking-widest">
-          <tr><th class="px-3 py-3">ชื่องาน (Task)</th><th class="px-3 py-3">ผู้รับผิดชอบ</th><th class="px-3 py-3">ที่มา (Sheet)</th><th class="px-3 py-3">Deadline</th><th class="px-3 py-3">Progress</th><th class="px-3 py-3">สถานะ</th></tr>
+          <tr><th class="px-3 py-3">ชื่องาน (Task)</th><th class="px-3 py-3">ผู้รับผิดชอบ</th><th class="px-3 py-3">กลุ่มงาน</th><th class="px-3 py-3">Deadline</th><th class="px-3 py-3">Progress</th><th class="px-3 py-3">สถานะ</th></tr>
         </thead>
         <tbody id="adhocTable" class="divide-y divide-white/5"></tbody>
       </table>
@@ -137,17 +137,27 @@
 <script>
 const appState = { selectedEmployee:'all', selectedCategory:'all', selectedJobType:'all', date:new Date(), tasks:[], employees:[], monthlyChart:null, dailyTrendChart:null };
 const storageTaskKey='dashboardTasks';
+const brandingStorageKey='dashboardBranding';
 
 const el = id => document.getElementById(id);
 const fmtDate = d => { const nd = new Date(d); return Number.isNaN(nd.getTime()) ? '' : nd.toISOString().slice(0,10); };
 const normalizeProgress = v => Math.max(0, Math.min(100, Number(v)||0));
 
+// --- ปรับปรุงระบบจัดการวันที่และสถานะให้ยืดหยุ่น ---
 function normalizeDateFlexible(v){
   if (!v && v !== 0) return '';
+  if (v instanceof Date) {
+      if(Number.isNaN(v.getTime())) return '';
+      return v.toISOString().slice(0,10);
+  }
   if (typeof v === 'number') { const base=new Date(Date.UTC(1899,11,30)); return fmtDate(new Date(base.getTime()+v*86400000)); }
   const text = String(v).trim();
   const m = text.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
-  if (m) { const dd = Number(m[1]), mm = Number(m[2]), yy = Number(m[3].length === 2 ? `20${m[3]}` : m[3]); return fmtDate(new Date(Date.UTC(yy, mm - 1, dd))); }
+  if (m) { 
+      const dd = Number(m[1]), mm = Number(m[2]); 
+      let yy = Number(m[3]); if(yy < 100) yy += 2000;
+      return fmtDate(new Date(Date.UTC(yy, mm - 1, dd))); 
+  }
   const d = new Date(text);
   return Number.isNaN(d.getTime()) ? '' : fmtDate(d);
 }
@@ -179,20 +189,19 @@ function filteredTasks(){
     if(appState.selectedCategory!=='all' && t.category!==appState.selectedCategory) return false;
     if(appState.selectedJobType!=='all' && t.jobType!==appState.selectedJobType) return false;
     
-    // กรองวันที่ของ Routine
+    // กรองวันที่สำหรับ Routine
     if(t.category==='Routine') {
-      // ถ้างาน Routine ระบุวันที่มา ให้โชว์เฉพาะวันที่ตรง
-      // แต่ถ้า Excel ของลูกค้าไม่ได้ใส่วันที่มา ถือว่าเป็น Daily Routine ให้โชว์ทุกวัน
       if (t.planDate) return t.planDate === selectedDate;
-      return true; 
+      return true; // ถ้าไม่มีระบุวันที่มา ให้โชว์ทุกวัน
     }
     
-    // สำหรับ Adhoc โชว์ตั้งแต่วันที่รับงานเป็นต้นไป
+    // สำหรับ Adhoc
     if (!t.receiveDate) return true;
     return t.receiveDate <= selectedDate;
   });
 }
 
+// --- การสร้างหน้าจอ (UI Rendering) ---
 function renderSummary(tasks){
   const routine = tasks.filter(t=>t.category==='Routine');
   const routineDone = routine.filter(t=>computeStatus(t)==='success').length;
@@ -209,7 +218,7 @@ function renderSummary(tasks){
 function renderRoutine(tasks){
   const list = el('routineList');
   const routine = tasks.filter(t=>t.category==='Routine');
-  if(!routine.length){ list.innerHTML='<div class="text-sm text-slate-400 text-center py-8 bg-slate-900/50 rounded-lg">ไม่มีงาน Routine ในวันที่เลือก (หรืองานถูกคัดออกเนื่องจากหมวดหมู่/พนักงานไม่ตรง)</div>'; return; }
+  if(!routine.length){ list.innerHTML='<div class="text-sm text-slate-400 text-center py-8 bg-slate-900/50 rounded-lg border border-slate-800">ไม่มีงาน Routine ในวันที่เลือก หรือยังไม่ได้นำเข้าไฟล์</div>'; return; }
   
   const jobs = {};
   routine.forEach(t=>{ const key=t.jobType||'Routine Tasks'; (jobs[key] ||= []).push(t); });
@@ -245,18 +254,18 @@ function renderRoutine(tasks){
 
   list.querySelectorAll('[data-rcheck]').forEach(i=>i.onchange=e=>{updateTaskById(Number(e.target.dataset.rcheck), t=>{t.workStatus=e.target.checked?'done':'not_started'; t.progress=e.target.checked?100:0; t.actualDelivery=e.target.checked?fmtDate(appState.date):'';});});
   list.querySelectorAll('[data-rprog]').forEach(i=>i.onchange=e=>{updateTaskById(Number(e.target.dataset.rprog), t=>{t.progress=normalizeProgress(e.target.value); t.workStatus=t.progress>=100?'done':t.progress>0?'in_progress':'not_started'; t.actualDelivery=t.progress>=100?fmtDate(appState.date):'';});});
-  list.querySelectorAll('[data-rstatus]').forEach(i=>i.onchange=e=>{updateTaskById(Number(e.target.dataset.rstatus), t=>{t.workStatus=e.target.value; if(t.workStatus==='done'){t.progress=100;t.actualDelivery=fmtDate(appState.date);} else if(t.workStatus==='in_progress'){t.progress=Math.max(1,normalizeProgress(t.progress)); t.actualDelivery='';} else {t.progress=0;t.actualDelivery='';}});});
+  list.querySelectorAll('[data-rstatus]').forEach(i=>i.onchange=e=>{updateTaskById(Number(e.target.dataset.rstatus), t=>{t.workStatus=e.target.value; if(t.workStatus==='done'){t.progress=100;t.actualDelivery=fmtDate(appState.date);} else if(t.workStatus==='in_progress'){t.progress=Math.max(1,normalizeProgress(t.progress)); t.actualDelivery='';} else {t.progress=0;t.actualDelivery='';});});});
 }
 
 function renderAdhoc(tasks){
   const rows = tasks.filter(t=>t.category==='Adhoc');
   const tb = el('adhocTable');
-  if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="px-3 py-6 text-center text-slate-400 bg-slate-900/50 rounded-lg">ไม่มีข้อมูล Adhoc</td></tr>';return;}
+  if(!rows.length){tb.innerHTML='<tr><td colspan="6" class="px-3 py-8 text-center text-slate-400 bg-slate-900/50 rounded-lg border border-slate-800">ไม่มีข้อมูล Adhoc</td></tr>';return;}
   
   tb.innerHTML = rows.map(t=>{
     const stat = computeStatus(t);
     const badge = stat==='success'?'text-emerald-400 bg-emerald-500/10 border-emerald-500/20':stat==='overdue'?'text-red-400 bg-red-500/10 border-red-500/20':stat==='warning'?'text-yellow-400 bg-yellow-500/10 border-yellow-500/20':'text-sky-400 bg-sky-500/10 border-sky-500/20';
-    return `<tr class="hover:bg-white/5 transition">
+    return `<tr class="hover:bg-white/5 transition border-b border-slate-800/80">
     <td class="px-3 py-3 font-medium text-slate-200">${t.taskName}</td>
     <td class="px-3 py-3 text-sky-300 text-xs">${t.ownerName}</td>
     <td class="px-3 py-3 text-slate-400 text-xs">${t.jobType}</td>
@@ -296,69 +305,86 @@ function setupDropdowns(reset=true){
   const emp = el('employeeSelect');
   emp.innerHTML = `<option value="all">พนักงานทั้งหมด</option>` + appState.employees.map(e=>`<option value="${e.id}">${e.name}</option>`).join('');
   const jobTypes = [...new Set(appState.tasks.map(t=>t.jobType))].filter(Boolean).sort();
-  el('jobTypeSelect').innerHTML = `<option value="all">ทุกประเภทงาน (Sheet)</option>` + jobTypes.map(j=>`<option value="${j}">${j}</option>`).join('');
+  el('jobTypeSelect').innerHTML = `<option value="all">ทุกกลุ่มงาน</option>` + jobTypes.map(j=>`<option value="${j}">${j}</option>`).join('');
   if(reset){ appState.selectedEmployee='all'; appState.selectedJobType='all'; appState.selectedCategory='all'; }
   emp.value=appState.selectedEmployee; el('categorySelect').value=appState.selectedCategory; el('jobTypeSelect').value=appState.selectedJobType;
 }
 
 // -------------------------------------------------------------
-// ระบบ Smart Excel Parser - อ่านหัวตารางของลูกค้า
+// ระบบ Smart Excel Parser (V3 - รับจบทุกไฟล์ CSV/XLSX)
 // -------------------------------------------------------------
-function parseClientExcelRows(sheetName, rows) {
-    return rows.map((r, i) => {
-        // ดึงข้อมูลพนักงาน
-        const ownerId = String(r['STAFF Code'] || r['Staff Code'] || r['รหัสพนักงาน'] || 'UNK').trim().toUpperCase();
-        const ownerName = String(r['STAFF NM'] || r['Staff NM'] || r['ชื่อพนักงาน'] || 'ไม่ระบุ').trim();
-        
-        // ดึงชื่องาน (พยายามหาจากหลายๆ คอลัมน์ที่น่าจะเป็นชื่องาน)
-        const taskName = String(r['Task'] || r['TaskName'] || r['Title'] || r['ชื่องาน'] || r['รายการงาน'] || r['งาน'] || r['Cat_Name'] || 'ไม่ได้ระบุชื่องาน').trim();
-        
-        // บังคับแยกหมวดจากชื่อ Sheet
-        let cat = 'Adhoc'; 
-        const sNameLower = sheetName.toLowerCase();
-        if (sNameLower.includes('routine') || sNameLower.includes('job') || sNameLower.includes('ประจำ')) {
-            cat = 'Routine';
-        }
-
-        return {
-            id: Date.now() + i + Math.random(),
-            category: cat, // ได้จากชื่อ Sheet
-            planDate: normalizeDateFlexible(r['Date'] || r['วันที่'] || r['PlanDate']), // ถ้าไม่มี จะเป็นค่าว่าง
-            taskName: taskName,
-            ownerId: ownerId,
-            ownerName: ownerName,
-            jobType: sheetName, // ใช้ชื่อ Sheet เป็น Filter
-            receiveDate: normalizeDateFlexible(r['ReceiveDate'] || r['Receive'] || r['วันที่รับงาน']),
-            deadline: normalizeDateFlexible(r['Deadline'] || r['Due Date'] || r['กำหนดส่ง']),
-            actualDelivery: normalizeDateFlexible(r['ActualDelivery'] || r['ส่งงานจริง']),
-            progress: normalizeProgress(r['Progress'] || r['ความคืบหน้า'] || r['%']),
-            workStatus: normalizeWorkStatus(r['WorkStatus'] || r['สถานะ'] || r['Status'])
-        };
-    }).filter(r => r.taskName && r.taskName !== 'ไม่ได้ระบุชื่องาน'); // กรองแถวว่างทิ้ง
-}
-
 async function importExcel(file){
   el('syncStatusText').innerHTML = '<i class="fa-solid fa-spinner fa-spin text-amber-400"></i> กำลังประมวลผลไฟล์...';
   try {
       const data = await file.arrayBuffer();
-      const wb = XLSX.read(data, { type: 'array' });
+      // เพิ่ม cellDates: true เพื่อให้อ่านวันที่จาก Excel/CSV ได้ดีขึ้น
+      const wb = XLSX.read(data, { type: 'array', cellDates: true });
       const mergedRows = [];
 
       wb.SheetNames.forEach((sheetName) => {
-          // ข้าม Sheet ข้อมูลตั้งต้น
           const sNameLower = sheetName.toLowerCase();
-          if (sNameLower.includes('master') || sNameLower.includes('ข้อมูล')) return;
+          // กรณีมีหลาย Sheet ให้ข้าม Master Data แต่ถ้ามี Sheet เดียว (เช่นโหลด CSV) จะไม่ข้าม
+          if (wb.SheetNames.length > 1 && (sNameLower.includes('master') || sNameLower.includes('ข้อมูล'))) return;
 
           const ws = wb.Sheets[sheetName];
-          const flatRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
-          if (flatRows.length > 0) {
-              mergedRows.push(...parseClientExcelRows(sheetName, flatRows));
+          const rawRows = XLSX.utils.sheet_to_json(ws, { defval: '' });
+          
+          if (rawRows.length > 0) {
+              const parsed = rawRows.map((r, i) => {
+                  const keys = Object.keys(r);
+                  // ฟังก์ชันย่อยสำหรับค้นหาคอลัมน์จากคำที่ใกล้เคียง
+                  const getVal = (searchWords) => {
+                      const foundKey = keys.find(k => searchWords.some(sw => k.toLowerCase().includes(sw.toLowerCase())));
+                      return foundKey ? r[foundKey] : '';
+                  };
+
+                  const ownerId = String(getVal(['staff code', 'รหัส', 'ownerid', 'emp']) || 'UNK').trim().toUpperCase();
+                  const ownerName = String(getVal(['staff nm', 'ชื่อ', 'ownername', 'ผู้รับผิดชอบ']) || 'ไม่ระบุ').trim();
+                  // ดึงชื่องาน พยายามหาคอลัมน์ชื่อ Task ถ้าไม่มีให้ใช้ Cat_Name ถ้าไม่มีอีกใช้คอลัมน์แรกสุด
+                  let taskName = String(getVal(['task', 'ชื่องาน', 'title', 'cat_name', 'รายการ', 'งาน']) || '').trim();
+                  
+                  // ข้ามแถวที่ไม่มีข้อมูลชัดเจน (ป้องกันดึงหัวตารางผิด)
+                  if (!taskName || taskName.includes('Company Name') || taskName === 'ไม่ได้ระบุชื่องาน') return null;
+
+                  // หา Category (Routine vs Adhoc)
+                  let cat = 'Adhoc'; 
+                  const catVal = String(getVal(['category', 'หมวด', 'ประเภท', 'cat_name', 'cat_code'])).toLowerCase();
+                  
+                  // ถ้าชื่อ Sheet หรือชื่อประเภทงาน มีคำว่า Routine, Job, ประเภทงาน ให้ปัดเป็น Routine ทันที
+                  if (sNameLower.includes('routine') || sNameLower.includes('job') || sNameLower.includes('ประจำ') ||
+                      catVal.includes('routine') || catVal.includes('ประเภทงาน') || catVal.includes('ประจำ') || catVal.includes('cd0')) {
+                      cat = 'Routine';
+                  }
+
+                  // ตั้งชื่อกลุ่มงาน ถ้ามาจาก CSV จะกลายเป็น Sheet1 ให้ดึงข้อมูล Cat_Name แทนเพื่อความสวยงาม
+                  let jobType = sheetName;
+                  if (sheetName.startsWith('Sheet') || sheetName.toLowerCase().includes('data')) {
+                      jobType = getVal(['jobtype', 'กลุ่มงาน', 'cat_name', 'หมวด']) || 'Routine Tasks';
+                  }
+
+                  return {
+                      id: Date.now() + i + Math.random(),
+                      category: cat,
+                      planDate: normalizeDateFlexible(getVal(['date', 'วันที่', 'plan'])),
+                      taskName: taskName,
+                      ownerId: ownerId,
+                      ownerName: ownerName,
+                      jobType: jobType, 
+                      receiveDate: normalizeDateFlexible(getVal(['receive', 'รับงาน', 'plan'])),
+                      deadline: normalizeDateFlexible(getVal(['deadline', 'due', 'กำหนด'])),
+                      actualDelivery: normalizeDateFlexible(getVal(['actual', 'ส่งงาน'])),
+                      progress: normalizeProgress(getVal(['progress', '%', 'คืบหน้า'])),
+                      workStatus: normalizeWorkStatus(getVal(['status', 'สถานะ']))
+                  };
+              }).filter(r => r !== null);
+
+              mergedRows.push(...parsed);
           }
       });
 
       if (!mergedRows.length) {
-          el('syncStatusText').innerHTML = '<span class="text-red-400">นำเข้าไม่สำเร็จ: ไม่พบข้อมูลงานในไฟล์ หรืออ่านหัวตารางไม่ได้</span>';
-          alert('ไม่พบข้อมูลงาน กรุณาตรวจสอบว่ามีข้อมูลใน Sheet (ยกเว้น Master Data)');
+          el('syncStatusText').innerHTML = '<span class="text-red-400">นำเข้าไม่สำเร็จ: ไม่พบข้อมูล หรืออ่านหัวตารางไม่ได้</span>';
+          alert('ไม่พบข้อมูลงานในไฟล์ กรุณาตรวจสอบตารางว่ามีคอลัมน์รายชื่อพนักงานและชื่องาน');
           return;
       }
 
@@ -382,6 +408,9 @@ function bindEvents(){
   el('nextDateBtn').onclick=()=>{appState.date.setDate(appState.date.getDate()+1); el('dateFilter').value=fmtDate(appState.date); updateDateLabel(); renderAll();};
   el('resetDailyBtn').onclick=()=>{ const d=fmtDate(appState.date); appState.tasks.forEach(t=>{ if(t.category==='Routine' && (!t.planDate || t.planDate===d)){ t.progress=0; t.workStatus='not_started'; t.actualDelivery=''; }}); saveTasks(); renderAll(); };
   el('excelUpload').onchange=async e=>{const f=e.target.files?.[0]; if(f) await importExcel(f); e.target.value='';};
+  el('companyNameInput').oninput=e=>{ const v=e.target.value; el('companyNameText').textContent=v||'Your Company Name'; saveBranding({companyName:v}); };
+  el('logoUpload').onchange=e=>{ const f=e.target.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ const data=String(r.result||''); el('companyLogo').src=data; el('companyLogo').classList.remove('hidden'); el('logoFallback').classList.add('hidden'); saveBranding({logoDataUrl:data}); }; r.readAsDataURL(f); };
+  el('clearLogoBtn').onclick=()=>{el('companyLogo').src=''; el('companyLogo').classList.add('hidden'); el('logoFallback').classList.remove('hidden'); saveBranding({logoDataUrl:''});};
 }
 function updateDateLabel(){ el('currentDate').textContent = appState.date.toLocaleDateString('th-TH',{weekday:'long',year:'numeric',month:'long',day:'numeric'}); }
 
@@ -400,6 +429,7 @@ function init(){
   // โหลดโลโก้ถ้ามี
   const stored = JSON.parse(localStorage.getItem(brandingStorageKey)||'{}');
   if(stored.companyName) { el('companyNameInput').value = stored.companyName; el('companyNameText').textContent = stored.companyName; }
+  if (stored.logoDataUrl){ el('companyLogo').src=stored.logoDataUrl; el('companyLogo').classList.remove('hidden'); el('logoFallback').classList.add('hidden'); }
 }
 init();
 </script>
