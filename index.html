@@ -197,24 +197,30 @@ function showAlert(msg, color, icon='fa-info-circle') {
     setTimeout(() => { alert.classList.add('hidden'); }, 5000);
 }
 
-// --- 2. Advanced AI Parser ---
+// --- 2. Advanced AI Parser (อัปเดตพิเศษให้รองรับไฟล์ลูกค้า) ---
 function parseDateKey(k) {
-    // ลองแปลงเป็นตัวเลข (Excel Serial Date)
-    const num = parseFloat(k);
-    if (!isNaN(num) && num > 30000 && num < 60000) {
-        const d = new Date(Math.round((num - 25569) * 86400 * 1000));
-        return d.toISOString().slice(0, 10);
-    }
-    // ลองแปลงรูปแบบ YYYY-MM-DD
-    if (String(k).match(/^\d{4}-\d{2}-\d{2}$/)) return String(k).slice(0, 10);
-    // ลองแปลงรูปแบบ DD/MM/YYYY หรือ MM/DD/YYYY
-    const m = String(k).match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
+    if (!k) return null;
+    let strK = String(k).trim();
+    
+    // แบบที่ 1: YYYY-MM-DD
+    let m = strK.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
+    if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
+    
+    // แบบที่ 2: DD/MM/YYYY หรือ MM/DD/YYYY
+    m = strK.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
     if (m) {
         let yy = parseInt(m[3]);
         if (yy < 100) yy += 2000;
-        let mm = parseInt(m[2]), dd = parseInt(m[1]);
-        if (mm > 12) { let temp = mm; mm = dd; dd = temp; } // สลับถ้าเดือนเกิน 12
-        const d = new Date(yy, mm - 1, dd + 1);
+        let p1 = parseInt(m[1]), p2 = parseInt(m[2]);
+        let mm = p2, dd = p1; // ให้ค่าเริ่มต้นเป็นแบบไทย/อังกฤษ DD/MM/YYYY
+        if (p1 > 12) { mm = p1; dd = p2; } // ถ้าตัวแรกเกิน 12 ต้องสลับ
+        return `${yy}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
+    }
+
+    // แบบที่ 3: Excel Serial Date (ตัวเลข 5 หลัก)
+    const num = parseFloat(strK);
+    if (!isNaN(num) && num > 30000 && num < 70000) {
+        const d = new Date(Math.round((num - 25569) * 86400 * 1000));
         return d.toISOString().slice(0, 10);
     }
     return null;
@@ -225,94 +231,78 @@ function parseExcelData(workbook) {
     
     workbook.SheetNames.forEach(sheetName => {
         const sLower = sheetName.toLowerCase();
-        if (sLower.includes('master') || sLower.includes('compliant') || sLower.includes('ข้อมูล')) return;
+        
+        // ข้ามเฉพาะ Sheet ที่ไม่ต้องการ (เช่น Master Data)
+        if (sLower.includes('master') || sLower.includes('ข้อมูล')) return;
 
-        // แยกหมวดหมู่พื้นฐานจากชื่อ Sheet
+        // แยกหมวดหมู่จากชื่อ Sheet (รวมถึง Compliant ด้วย)
         let baseCategory = 'Routine';
-        if (sLower.includes('adhoc') || sLower.includes('project')) baseCategory = 'Adhoc';
+        if (sLower.includes('adhoc') || sLower.includes('project') || sLower.includes('compliant')) baseCategory = 'Adhoc';
 
-        // ใช้ raw: true เพื่อให้ได้ค่าตัวเลข Excel Serial Date ที่แม่นยำ
-        const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '', raw: true });
+        // ใช้ raw: false เพื่อดึงค่าที่ format มาแล้วให้อ่านง่ายขึ้น
+        const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '', raw: false });
 
-        rawRows.forEach((row, index) => {
+        rawRows.forEach((row) => {
             const keys = Object.keys(row);
             if (keys.length === 0) return;
 
-            // ค้นหาค่าจากคำใกล้เคียง
             const getVal = (keywords) => {
                 const k = keys.find(key => keywords.some(kw => String(key).toLowerCase().includes(kw)));
                 return k ? String(row[k]).trim() : '';
             };
 
-            // 1. รวม STAFF Code และ STAFF NM
-            const staffCode = getVal(['staff code', 'รหัส']);
-            const staffNm = getVal(['staff nm', 'ชื่อ']);
-            let ownerName = 'ไม่ระบุพนักงาน';
-            if (staffCode && staffNm) ownerName = `${staffCode} (${staffNm})`;
-            else if (staffCode) ownerName = staffCode;
-            else if (staffNm) ownerName = staffNm;
+            // 1. หาชื่องาน (รองรับ Job Name, TASK)
+            let taskName = getVal(['task', 'job name', 'ชื่องาน', 'รายการ']);
+            if (!taskName || taskName === 'ไม่ได้ระบุชื่องาน' || taskName.includes('Company Name') || taskName.toLowerCase() === 'task') return;
 
-            // 2. รวม Cat_Code และ Cat_Name เพื่อใช้เป็น "กลุ่มงาน"
-            const catCode = getVal(['cat_code', 'รหัสประเภท']);
-            const catName = getVal(['cat_name', 'ประเภทงาน']);
-            let jobType = sheetName;
-            if (catCode && catName) jobType = `${catCode} - ${catName}`;
-            else if (catName) jobType = catName;
+            // 2. หาชื่อพนักงาน (รองรับ Owner, Onwer ที่พิมพ์ผิดในไฟล์)
+            let ownerName = getVal(['owner', 'onwer', 'ผู้รับผิดชอบ', 'พนักงาน']);
+            if (!ownerName) ownerName = 'ไม่ระบุ';
 
-            // ตัดสินใจ Category สุดท้าย
-            let finalCategory = baseCategory;
-            if (jobType.toLowerCase().includes('adhoc')) finalCategory = 'Adhoc';
+            // 3. หากลุ่มงาน
+            let jobType = getVal(['category', 'กลุ่มงาน', 'ประเภท']);
+            if (!jobType) jobType = sheetName;
 
-            // 3. หาชื่องาน (Task)
-            let taskName = getVal(['task', 'ชื่องาน', 'รายการ', 'company name', 'abc company']);
-            if (!taskName) {
-                // กวาดหาคอลัมน์แรกที่เป็นข้อความและไม่ใช่พวก metadata
-                const skipWords = ['staff', 'รหัส', 'ชื่อ', 'cat_', 'ประเภท', 'date', 'status'];
-                const tKey = keys.find(k => !skipWords.some(sw => String(k).toLowerCase().includes(sw)) && isNaN(k));
-                if(tKey) taskName = String(row[tKey]).trim();
-            }
-            if (!taskName || taskName === 'ไม่ได้ระบุชื่องาน' || taskName.includes('Company Name') || taskName === 'Task') return;
-
-            // 4. Time Machine Logic: แสกนหาคอลัมน์ที่เป็น "วันที่" และมีค่า P, S, N
-            let foundDateColumns = false;
+            // 4. ตรวจสอบว่าเป็นตารางแบบ Matrix (หัวคอลัมน์เป็นวันที่) หรือ Row ปกติ
+            let isMatrixFormat = false;
+            
             keys.forEach(k => {
                 const parsedDate = parseDateKey(k);
                 if (parsedDate) {
+                    isMatrixFormat = true;
                     const cellVal = String(row[k]).trim().toUpperCase();
-                    // ถ้าในช่องวันที่นั้นมีข้อมูล (P, S, N) หรือข้อความใดๆ ให้สร้าง 1 งานสำหรับวันนั้น
+                    
                     if (cellVal) {
-                        foundDateColumns = true;
-                        let status = 'not run'; // Default N
+                        let status = 'not run';
                         if (cellVal === 'S' || cellVal.includes('SUCCESS') || cellVal.includes('DONE')) status = 'done';
                         else if (cellVal === 'P' || cellVal.includes('PENDING')) status = 'pending';
-                        else if (cellVal === 'N' || cellVal.includes('NOT')) status = 'not run';
-
+                        
                         allData.push({
                             id: `T${Date.now()}${Math.floor(Math.random()*100000)}`,
-                            category: finalCategory,
+                            category: baseCategory,
                             jobType: jobType,
                             taskName: taskName,
                             ownerName: ownerName,
-                            date: parsedDate, // งานนี้ถูกล็อคติดกับวันที่นี้
+                            date: parsedDate,
                             status: status
                         });
                     }
                 }
             });
 
-            // Fallback: ถ้าไม่ใช่ตาราง Matrix (ไม่มีคอลัมน์เป็นวันที่) ลองหาแบบคอลัมน์ Date ตรงๆ
-            if (!foundDateColumns) {
-                const rawDate = getVal(['date', 'วันที่', 'deadline', 'กำหนด', 'receive']);
-                let parsedDate = parseDateKey(rawDate) || new Date().toISOString().slice(0,10); // ถ้าไม่มีให้ใช้วันนี้
+            // 5. ถ้าไม่ใช่ Matrix ให้ดึงวันที่จากคอลัมน์ Deadline แทน
+            if (!isMatrixFormat) {
+                const rawDate = getVal(['deadline date', 'deadline', 'กำหนด', 'date']);
+                let parsedDate = parseDateKey(rawDate) || new Date().toISOString().slice(0,10);
                 
                 const rawStatus = getVal(['status', 'สถานะ']).toUpperCase();
                 let status = 'not run';
-                if (rawStatus === 'S' || rawStatus.includes('SUCCESS') || rawStatus.includes('DONE')) status = 'done';
-                else if (rawStatus === 'P' || rawStatus.includes('PENDING')) status = 'pending';
+                if (rawStatus.includes('SUCCESS') || rawStatus === 'S' || rawStatus.includes('DONE')) status = 'done';
+                else if (rawStatus.includes('PENDING') || rawStatus === 'P' || rawStatus.includes('OVERDUE')) status = 'pending';
 
                 allData.push({
                     id: `T${Date.now()}${Math.floor(Math.random()*100000)}`,
-                    category: finalCategory,
+                    category: baseCategory,
                     jobType: jobType,
                     taskName: taskName,
                     ownerName: ownerName,
