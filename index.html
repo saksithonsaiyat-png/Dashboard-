@@ -56,7 +56,7 @@
         <h1 class="text-2xl md:text-3xl font-black text-white tracking-wide flex items-center gap-3">
             Executive Monitor
         </h1>
-        <p class="text-purple-300/80 text-xs md:text-sm mt-1">Progress</p>
+        <p class="text-purple-300/80 text-xs md:text-sm mt-1"><i class="fa-solid fa-cloud-arrow-down text-emerald-400 mr-1"></i>บันทึกข้อมูลอัตโนมัติ (Auto-Save)</p>
     </div>
   </div>
   
@@ -81,7 +81,7 @@
 <!-- Dropdown Filters -->
 <section class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
   <div class="glass-card p-3 px-4 flex items-center justify-between">
-    <label class="text-xs text-slate-400 uppercase font-bold w-1/3">พนักงาน:</label>
+    <label class="text-xs text-slate-400 uppercase font-bold w-1/3">กรองพนักงาน:</label>
     <select id="employeeSelect" class="w-2/3 bg-black/20 border border-white/10 rounded-lg text-sm text-slate-200 py-1.5 px-3 outline-none focus:border-purple-500"></select>
   </div>
   <div class="glass-card p-3 px-4 flex items-center justify-between">
@@ -116,6 +116,31 @@
     <h3 id="percentStat" class="text-4xl font-black text-indigo-400 relative z-10">0%</h3>
     <p class="text-[10px] text-slate-500 mt-2 relative z-10">สัดส่วนความสำเร็จ (S / ทั้งหมด)</p>
   </div>
+</section>
+
+<!-- Charts Section -->
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <div class="glass-card p-5 h-80 flex flex-col relative">
+        <h3 class="text-sm font-bold text-slate-200 mb-2 flex justify-between">
+            <span><i class="fa-solid fa-chart-pie text-indigo-400 mr-2"></i>ภาพรวมบริษัท (Company Overview)</span>
+        </h3>
+        <div class="flex-1 relative w-full h-full flex items-center justify-center">
+            <canvas id="companyChart"></canvas>
+            <!-- Label ตรงกลาง Doughnut -->
+            <div id="companyChartCenter" class="absolute inset-0 flex flex-col items-center justify-center pointer-events-none mt-4">
+                <span class="text-2xl font-black text-white" id="totalCompanyTasks">0</span>
+                <span class="text-[10px] text-slate-400">งานทั้งหมด</span>
+            </div>
+        </div>
+    </div>
+    <div class="glass-card p-5 h-80 flex flex-col">
+        <h3 class="text-sm font-bold text-slate-200 mb-2 flex justify-between">
+            <span><i class="fa-solid fa-users text-emerald-400 mr-2"></i>ผลงานรายบุคคล (Employee Performance)</span>
+        </h3>
+        <div class="flex-1 relative w-full h-full">
+            <canvas id="employeeChart"></canvas>
+        </div>
+    </div>
 </section>
 
 <!-- Task Lists -->
@@ -167,12 +192,17 @@
 
 <script>
 // --- 1. System Setup & Persistence ---
-const DB_KEY = 'Executive_Dash_V10_PRO'; 
+const DB_KEY = 'Executive_Dash_V10_PRO_Final'; 
 const appState = {
     tasks: [], 
     selectedDate: '',
     filters: { employee: 'all', jobType: 'all' }
 };
+
+let chartCompany = null;
+let chartEmployee = null;
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
 
 const el = id => document.getElementById(id);
 
@@ -189,11 +219,17 @@ function init() {
     if(savedName) el('companyNameText').innerText = savedName;
 
     loadTasks();
+    if(appState.tasks.length > 0) {
+        showAlert('โหลดข้อมูลประวัติงานสำเร็จ (จากเครื่องของคุณ)', 'emerald', 'fa-cloud-arrow-down');
+    }
+
     updateDropdowns();
     renderUI();
 }
 
-function saveTasks() { localStorage.setItem(DB_KEY, JSON.stringify(appState.tasks)); }
+function saveTasks() { 
+    localStorage.setItem(DB_KEY, JSON.stringify(appState.tasks)); 
+}
 function loadTasks() {
     const stored = localStorage.getItem(DB_KEY);
     if (stored) appState.tasks = JSON.parse(stored);
@@ -201,11 +237,13 @@ function loadTasks() {
 function hardReset() {
     if(confirm('ล้างข้อมูลไฟล์งานทั้งหมดใช่หรือไม่? (โลโก้และชื่อบริษัทจะยังคงอยู่)')) {
         localStorage.removeItem(DB_KEY);
-        location.reload();
+        appState.tasks = [];
+        renderUI();
+        updateDropdowns();
     }
 }
 
-// Event สำหรับบันทึก Logo และ ชื่อบริษัท
+// Event สำหรับบันทึก Logo และ ชื่อบริษัทแบบ Realtime
 el('logoUpload').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (file) {
@@ -227,19 +265,17 @@ function showAlert(msg, color, icon='fa-info-circle') {
     alert.className = `mb-6 p-4 rounded-xl text-sm font-bold flex items-center gap-3 bg-${color}-500/20 text-${color}-300 border border-${color}-500/30 shadow-lg`;
     alert.innerHTML = `<i class="fa-solid ${icon} text-lg"></i> <span>${msg}</span>`;
     alert.classList.remove('hidden');
-    setTimeout(() => { alert.classList.add('hidden'); }, 5000);
+    setTimeout(() => { alert.classList.add('hidden'); }, 4000);
 }
 
-// --- 2. Advanced AI Parser ---
+// --- 2. Advanced AI Parser (คงเดิมเพราะทำงานดีแล้ว) ---
 function parseDateKey(k) {
     if (!k) return null;
     let strK = String(k).trim();
     
-    // YYYY-MM-DD
     let m = strK.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
     if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
     
-    // DD/MM/YYYY หรือ MM/DD/YYYY
     m = strK.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
     if (m) {
         let yy = parseInt(m[3]);
@@ -250,7 +286,6 @@ function parseDateKey(k) {
         return `${yy}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
     }
 
-    // Excel Serial Date
     const num = parseFloat(strK);
     if (!isNaN(num) && num > 30000 && num < 70000) {
         const d = new Date(Math.round((num - 25569) * 86400 * 1000));
@@ -261,11 +296,8 @@ function parseDateKey(k) {
 
 function parseExcelData(workbook) {
     let allData = [];
-    
     workbook.SheetNames.forEach(sheetName => {
         const sLower = sheetName.toLowerCase();
-        
-        // ข้ามเฉพาะ Sheet ที่ไม่ต้องการ (เช่น Master Data)
         if (sLower.includes('master') || sLower.includes('ข้อมูล')) return;
 
         let baseCategory = 'Routine';
@@ -285,11 +317,8 @@ function parseExcelData(workbook) {
             let taskName = getVal(['task', 'job name', 'ชื่องาน', 'รายการ']);
             if (!taskName || taskName === 'ไม่ได้ระบุชื่องาน' || taskName.includes('Company Name') || taskName.toLowerCase() === 'task') return;
 
-            let ownerName = getVal(['owner', 'onwer', 'ผู้รับผิดชอบ', 'พนักงาน']);
-            if (!ownerName) ownerName = 'ไม่ระบุ';
-
-            let jobType = getVal(['category', 'กลุ่มงาน', 'ประเภท']);
-            if (!jobType) jobType = sheetName;
+            let ownerName = getVal(['owner', 'onwer', 'ผู้รับผิดชอบ', 'พนักงาน']) || 'ไม่ระบุ';
+            let jobType = getVal(['category', 'กลุ่มงาน', 'ประเภท']) || sheetName;
 
             let isMatrixFormat = false;
             
@@ -298,7 +327,6 @@ function parseExcelData(workbook) {
                 if (parsedDate) {
                     isMatrixFormat = true;
                     const cellVal = String(row[k]).trim().toUpperCase();
-                    
                     if (cellVal) {
                         let status = 'not run';
                         if (cellVal === 'S' || cellVal.includes('SUCCESS') || cellVal.includes('DONE')) status = 'done';
@@ -306,18 +334,12 @@ function parseExcelData(workbook) {
                         
                         allData.push({
                             id: `T${Date.now()}${Math.floor(Math.random()*100000)}`,
-                            category: baseCategory,
-                            jobType: jobType,
-                            taskName: taskName,
-                            ownerName: ownerName,
-                            date: parsedDate,
-                            status: status
+                            category: baseCategory, jobType: jobType, taskName: taskName, ownerName: ownerName, date: parsedDate, status: status
                         });
                     }
                 }
             });
 
-            // ถ้าไม่ใช่ Matrix
             if (!isMatrixFormat) {
                 const rawDate = getVal(['deadline date', 'deadline', 'กำหนด', 'date']);
                 let parsedDate = parseDateKey(rawDate) || new Date().toISOString().slice(0,10);
@@ -329,12 +351,7 @@ function parseExcelData(workbook) {
 
                 allData.push({
                     id: `T${Date.now()}${Math.floor(Math.random()*100000)}`,
-                    category: baseCategory,
-                    jobType: jobType,
-                    taskName: taskName,
-                    ownerName: ownerName,
-                    date: parsedDate,
-                    status: status
+                    category: baseCategory, jobType: jobType, taskName: taskName, ownerName: ownerName, date: parsedDate, status: status
                 });
             }
         });
@@ -354,7 +371,7 @@ el('fileUpload').addEventListener('change', (e) => {
             const newTasks = parseExcelData(wb);
             
             if (newTasks.length === 0) {
-                showAlert('นำเข้าไม่สำเร็จ: ไม่พบข้อมูล (ระบบข้าม Sheet Master Data ให้แล้ว)', 'rose', 'fa-triangle-exclamation');
+                showAlert('นำเข้าไม่สำเร็จ: ไม่พบข้อมูล', 'rose', 'fa-triangle-exclamation');
                 return;
             }
             
@@ -362,7 +379,7 @@ el('fileUpload').addEventListener('change', (e) => {
             saveTasks(); 
             updateDropdowns();
             renderUI();
-            showAlert(`นำเข้าสำเร็จ! พบประวัติงาน ${newTasks.length} รายการ`, 'emerald', 'fa-check-circle');
+            showAlert(`อัปโหลดไฟล์และบันทึกประวัติ ${newTasks.length} รายการสำเร็จ`, 'emerald', 'fa-check-circle');
             e.target.value = ''; 
         } catch (err) { 
             console.error(err);
@@ -392,27 +409,105 @@ function updateDropdowns() {
         types.map(t => `<option value="${t}">${t}</option>`).join('');
 }
 
-// อัปเดตสถานะ
+// อัปเดตสถานะและบันทึกลง Local Storage ทันที
 window.changeTaskStatus = function(taskId, newStatus) {
     const task = appState.tasks.find(t => t.id === taskId);
     if (task) {
         task.status = newStatus;
-        saveTasks();
+        saveTasks(); // บันทึกอัตโนมัติ
         renderUI();
     }
 }
 
-// --- 4. Rendering UI ---
+// --- 4. Render Charts (เพิ่มเข้ามาใหม่) ---
+function renderCharts(tasks) {
+    let cDone = 0, cPending = 0, cNotRun = 0;
+    const empData = {};
+
+    tasks.forEach(t => {
+        // นับภาพรวมบริษัท
+        if(t.status === 'done') cDone++;
+        else if(t.status === 'pending') cPending++;
+        else cNotRun++;
+
+        // นับรายบุคคล
+        if (!empData[t.ownerName]) empData[t.ownerName] = { done: 0, pending: 0, notrun: 0 };
+        if (t.status === 'done') empData[t.ownerName].done++;
+        else if (t.status === 'pending') empData[t.ownerName].pending++;
+        else empData[t.ownerName].notrun++;
+    });
+
+    // 1. Company Doughnut Chart
+    if (chartCompany) chartCompany.destroy();
+    chartCompany = new Chart(el('companyChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Success (S)', 'Pending (P)', 'Not Run (N)'],
+            datasets: [{
+                data: [cDone, cPending, cNotRun],
+                backgroundColor: ['#10b981', '#f59e0b', '#475569'],
+                borderWidth: 2,
+                borderColor: '#211c38',
+                hoverOffset: 5
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            cutout: '75%',
+            plugins: {
+                legend: { position: 'right', labels: { color: '#cbd5e1', padding: 20, font: { size: 11 } } }
+            }
+        }
+    });
+    // อัปเดตตัวเลขตรงกลาง
+    el('totalCompanyTasks').innerText = tasks.length;
+
+    // 2. Employee Stacked Bar Chart
+    const empNames = Object.keys(empData);
+    if (chartEmployee) chartEmployee.destroy();
+    chartEmployee = new Chart(el('employeeChart'), {
+        type: 'bar',
+        data: {
+            labels: empNames.length ? empNames : ['ไม่มีข้อมูลพนักงาน'],
+            datasets: [
+                { label: 'Success (S)', data: empNames.map(n => empData[n].done), backgroundColor: '#10b981', borderRadius: 4 },
+                { label: 'Pending (P)', data: empNames.map(n => empData[n].pending), backgroundColor: '#f59e0b', borderRadius: 4 },
+                { label: 'Not Run (N)', data: empNames.map(n => empData[n].notrun), backgroundColor: '#475569', borderRadius: 4 }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { stacked: true, grid: { display: false }, ticks: { font: { size: 10 } } },
+                y: { stacked: true, beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' }, border: { dash: [4, 4] } }
+            },
+            plugins: {
+                legend: { position: 'top', align: 'end', labels: { boxWidth: 10, font: { size: 10 } } }
+            }
+        }
+    });
+}
+
+// --- 5. Rendering UI ---
 function renderUI() {
     const { employee, jobType } = appState.filters;
     const targetDate = appState.selectedDate; 
 
+    // ข้อมูลสำหรับวันนั้นทั้งหมด (ใช้สำหรับแสดง Charts ให้เห็นภาพรวม)
     const dateFilteredTasks = appState.tasks.filter(t => t.date === targetDate);
+    
+    // ข้อมูลที่กรองตาม Dropdown เพิ่มเติม (ใช้สำหรับแสดง Stats Card และ Table)
     const finalFiltered = dateFilteredTasks.filter(t => 
         (employee === 'all' || t.ownerName === employee) && 
         (jobType === 'all' || t.jobType === jobType)
     );
 
+    // 1. อัปเดต Charts (อิงตาม finalFiltered เพื่อให้เห็นเฉพาะกลุ่ม/คนที่เลือกได้ด้วย)
+    renderCharts(finalFiltered);
+
+    // 2. อัปเดต Stats
     let countS = 0, countP = 0, countN = 0;
     finalFiltered.forEach(t => {
         if(t.status === 'done') countS++;
@@ -431,6 +526,7 @@ function renderUI() {
     el('routineDateLabel').innerText = `ข้อมูล ณ วันที่: ${targetDate}`;
     el('adhocDateLabel').innerText = `ข้อมูล ณ วันที่: ${targetDate}`;
 
+    // 3. Render Routine
     const routineTasks = finalFiltered.filter(t => t.category === 'Routine');
     el('routineContainer').innerHTML = routineTasks.length ? routineTasks.map(t => {
         let borderClass = 'border-slate-700/50';
@@ -460,6 +556,7 @@ function renderUI() {
             <p class="text-sm font-bold uppercase tracking-wider">ไม่มีงาน Routine</p>
         </div>`;
 
+    // 4. Render Adhoc
     const adhocTasks = finalFiltered.filter(t => t.category === 'Adhoc');
     el('adhocTableBody').innerHTML = adhocTasks.length ? adhocTasks.map(t => {
         let textClass = 'text-slate-400';
