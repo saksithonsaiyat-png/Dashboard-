@@ -68,7 +68,7 @@
 </section>
 
 <!-- Stats Grid -->
-<section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+<section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
   <div class="glass-card p-6 border-b-4 border-emerald-500">
     <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2">Routine Progress</p>
     <h3 id="routineStat" class="text-4xl font-black text-emerald-400">0%</h3>
@@ -89,6 +89,24 @@
     <h3 id="overdueStat" class="text-4xl font-black text-rose-400">0</h3>
     <p class="text-[10px] text-slate-500 mt-2">เกินกำหนด</p>
   </div>
+</section>
+
+<!-- Charts Section -->
+<section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+    <div class="glass-card p-5 h-80 flex flex-col">
+        <h3 class="text-sm font-bold text-slate-200 mb-2"><i class="fa-solid fa-chart-line text-emerald-400 mr-2"></i>ภาพรวมงานรายเดือน (Company Growth)</h3>
+        <p class="text-xs text-slate-400 mb-4">แสดงสัดส่วนงานที่เข้ามาและงานที่ทำสำเร็จในแต่ละเดือนอิงจากกำหนดส่ง</p>
+        <div class="flex-1 relative w-full h-full">
+            <canvas id="growthChart"></canvas>
+        </div>
+    </div>
+    <div class="glass-card p-5 h-80 flex flex-col">
+        <h3 class="text-sm font-bold text-slate-200 mb-2"><i class="fa-solid fa-chart-bar text-sky-400 mr-2"></i>ความคืบหน้างานรายบุคคล (Employee Progress)</h3>
+        <p class="text-xs text-slate-400 mb-4">แสดงจำนวนงานทั้งหมดเทียบกับงานที่ทำสำเร็จของพนักงานแต่ละคน</p>
+        <div class="flex-1 relative w-full h-full">
+            <canvas id="employeeChart"></canvas>
+        </div>
+    </div>
 </section>
 
 <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
@@ -132,8 +150,7 @@
 
 <script>
 // --- 1. State & LocalStorage Setup ---
-// เปลี่ยน KEY ใหม่เพื่อเคลียร์ข้อมูลเก่าที่ทำให้เว็บค้าง
-const DB_KEY = 'Executive_Dash_Data_V3'; 
+const DB_KEY = 'Executive_Dash_Data_V4'; 
 
 const appState = {
     tasks: [],
@@ -143,38 +160,37 @@ const appState = {
 
 const el = id => document.getElementById(id);
 
+// ตัวแปรสำหรับเก็บ instance ของกราฟเพื่อลบ/วาดใหม่
+let chartGrowth = null;
+let chartEmployee = null;
+
+// ตั้งค่า Chart.js ให้เหมาะกับ Dark Mode เป็นค่าเริ่มต้น
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+
 // --- 2. Initialization ---
 function init() {
-    // ใช้วันที่ปัจจุบันเป็นค่าเริ่มต้นเสมอ (ป้องกันบัควันที่)
     const todayStr = new Date().toISOString().slice(0, 10);
     appState.selectedDate = todayStr;
     el('dateFilter').value = todayStr;
 
-    // โหลดข้อมูล
     loadTasks();
     updateDropdowns();
     renderUI();
 }
 
-// --- 3. Persistence (การจดจำข้อมูล) ---
+// --- 3. Persistence ---
 function saveTasks() {
     try {
         localStorage.setItem(DB_KEY, JSON.stringify(appState.tasks));
-    } catch(e) {
-        console.error("Save failed:", e);
-    }
+    } catch(e) { console.error("Save failed:", e); }
 }
 
 function loadTasks() {
     try {
         const stored = localStorage.getItem(DB_KEY);
-        if (stored) {
-            appState.tasks = JSON.parse(stored);
-        }
-    } catch(e) {
-        console.error("Load failed:", e);
-        appState.tasks = [];
-    }
+        if (stored) appState.tasks = JSON.parse(stored);
+    } catch(e) { appState.tasks = []; }
 }
 
 function hardReset() {
@@ -184,57 +200,71 @@ function hardReset() {
     }
 }
 
-// --- 4. Excel Parser (ตัวอ่านไฟล์แบบรับจบ) ---
+// --- 4. Excel Parser (ปรับปรุงการแยกหมวดหมู่) ---
 function parseAnyExcel(workbook) {
     let allData = [];
     
     workbook.SheetNames.forEach(sheetName => {
-        // ดึงข้อมูลทั้งหมดออกมา
         const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
         
-        rawRows.forEach((row, index) => {
+        rawRows.forEach((row) => {
             const keys = Object.keys(row);
-            if (keys.length === 0) return; // ข้ามแถวว่าง
+            if (keys.length === 0) return; 
 
-            // ฟังก์ชันช่วยหาคอลัมน์
             const getVal = (keywords) => {
                 const foundKey = keys.find(k => keywords.some(kw => String(k).toLowerCase().includes(kw)));
                 return foundKey ? String(row[foundKey]).trim() : '';
             };
 
-            // ดึงชื่องาน (ถ้าหาไม่เจอ ให้ใช้คอลัมน์ใดคอลัมน์หนึ่งที่มีข้อมูลแทน)
             let taskName = getVal(['task', 'ชื่องาน', 'title', 'cat_name', 'รายการ']);
             if (!taskName) {
-                // กวาดหาคอลัมน์แรกที่ไม่ใช่รหัสหรือชื่อพนักงาน
                 const backupKey = keys.find(k => !String(k).toLowerCase().includes('staff') && String(row[k]).trim() !== '');
                 if (backupKey) taskName = String(row[backupKey]).trim();
             }
-            if (!taskName || taskName === 'ไม่ได้ระบุชื่องาน' || taskName.includes('Company Name')) return; // ข้ามแถวขยะ
+            if (!taskName || taskName === 'ไม่ได้ระบุชื่องาน' || taskName.includes('Company Name')) return; 
 
-            // ดึงคนรับผิดชอบ
             const ownerId = getVal(['staff code', 'รหัส', 'ownerid']) || 'UNK';
             const ownerName = getVal(['staff nm', 'ชื่อ', 'ownername']) || 'ไม่ระบุ';
+            const rawDeadline = getVal(['deadline', 'due', 'กำหนด', 'date']);
+            
+            // --- ปรับปรุง Logic แยก Routine/Adhoc ---
+            let cat = 'Routine'; // Default
+            const sheetLower = sheetName.toLowerCase();
+            const catLower = getVal(['category', 'cat_name', 'ประเภท']).toLowerCase();
 
-            // ดึงหมวดหมู่ (เช็คจากหลายๆ จุด)
-            let cat = 'Adhoc';
-            const checkStr = (sheetName + ' ' + getVal(['category', 'cat_name', 'ประเภท'])).toLowerCase();
-            if (checkStr.includes('routine') || checkStr.includes('job') || checkStr.includes('ประเภทงาน') || checkStr.includes('ประจำ')) {
+            // 1. เช็คจากชื่อ Sheet ก่อน (แม่นยำที่สุดสำหรับเคสของคุณ)
+            if (sheetLower.includes('adhoc') || sheetLower.includes('project') || sheetLower.includes('โปรเจกต์')) {
+                cat = 'Adhoc';
+            } else if (sheetLower.includes('routine') || sheetLower.includes('ประจำ') || sheetLower.includes('job')) {
                 cat = 'Routine';
+            } else {
+                // 2. ถ้าชื่อ Sheet บอกไม่ได้ ค่อยมาเช็คข้างในเซลล์
+                if (catLower.includes('adhoc') || catLower.includes('project')) {
+                    cat = 'Adhoc';
+                }
+            }
+
+            // แปลงวันที่ Excel เป็น Format ที่ระบบอ่านได้
+            let parsedDeadline = rawDeadline;
+            // ถ้าเป็นตัวเลขจาก Excel (Serial number)
+            if(!isNaN(rawDeadline) && rawDeadline !== '') {
+               const excelEpoch = new Date(1899, 11, 30);
+               const dateObj = new Date(excelEpoch.getTime() + (parseInt(rawDeadline) * 86400000));
+               parsedDeadline = dateObj.toISOString().slice(0, 10);
             }
 
             allData.push({
-                id: `T${Date.now()}${Math.floor(Math.random()*1000)}`,
+                id: `T${Date.now()}${Math.floor(Math.random()*10000)}`,
                 category: cat,
                 jobType: sheetName,
                 taskName: taskName,
                 ownerId: ownerId,
                 ownerName: ownerName,
-                deadline: getVal(['deadline', 'due', 'กำหนด', 'date']), // ดึงวันที่มาเก็บไว้
-                status: 'pending' // ค่าเริ่มต้นคือยังไม่เสร็จ
+                deadline: parsedDeadline,
+                status: 'pending'
             });
         });
     });
-    
     return allData;
 }
 
@@ -242,49 +272,34 @@ function parseAnyExcel(workbook) {
 el('fileUpload').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    
     showAlert('กำลังนำเข้าข้อมูล...', 'sky');
-    
     const reader = new FileReader();
     reader.onload = (evt) => {
         try {
             const data = evt.target.result;
             const wb = XLSX.read(data, { type: 'binary' });
-            
             const newTasks = parseAnyExcel(wb);
             
             if (newTasks.length === 0) {
-                showAlert('นำเข้าไม่สำเร็จ: ไม่พบตารางข้อมูลที่ใช้อ่านได้', 'rose');
+                showAlert('นำเข้าไม่สำเร็จ: ไม่พบตารางข้อมูล', 'rose');
                 return;
             }
-
             appState.tasks = newTasks;
-            saveTasks(); // เซฟทันที
+            saveTasks(); 
             updateDropdowns();
             renderUI();
-            
             showAlert(`นำเข้าสำเร็จ ${newTasks.length} รายการ`, 'emerald');
-            e.target.value = ''; // เคลียร์ input
+            e.target.value = ''; 
         } catch (err) {
-            console.error(err);
-            showAlert('ไฟล์เกิดข้อผิดพลาด หรือนามสกุลไม่ถูกต้อง', 'rose');
+            showAlert('ไฟล์เกิดข้อผิดพลาด', 'rose');
         }
     };
     reader.readAsBinaryString(file);
 });
 
 el('dateFilter').addEventListener('change', (e) => {
-    const val = e.target.value;
-    if (val) {
-        appState.selectedDate = val;
-        renderUI();
-    } else {
-        // ถ้าผู้ใช้กดเคลียร์วันที่ ให้บังคับกลับมาวันนี้
-        const todayStr = new Date().toISOString().slice(0, 10);
-        appState.selectedDate = todayStr;
-        el('dateFilter').value = todayStr;
-        renderUI();
-    }
+    appState.selectedDate = e.target.value || new Date().toISOString().slice(0, 10);
+    renderUI();
 });
 
 el('employeeSelect').addEventListener('change', (e) => { appState.filters.employee = e.target.value; renderUI(); });
@@ -295,6 +310,7 @@ function showAlert(msg, color) {
     const alert = el('statusAlert');
     alert.className = `mb-4 p-3 rounded-lg text-sm font-bold flex items-center gap-2 bg-${color}-500/20 text-${color}-400 border border-${color}-500/30`;
     alert.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${msg}`;
+    alert.classList.remove('hidden');
     setTimeout(() => { alert.classList.add('hidden'); }, 5000);
 }
 
@@ -312,54 +328,156 @@ window.toggleTaskStatus = function(taskId) {
     const task = appState.tasks.find(t => t.id === taskId);
     if (task) {
         task.status = (task.status === 'done') ? 'pending' : 'done';
-        saveTasks(); // เซฟทุกครั้งที่กด
+        saveTasks();
         renderUI();
     }
 }
 
-// --- 7. Rendering (การวาดหน้าจอ) ---
+// --- 7. Chart Rendering ---
+function renderCharts(filteredTasks) {
+    // ---- 1. เตรียมข้อมูลกราฟการเติบโตรายเดือน (Growth/Timeline) ----
+    const monthData = {};
+    filteredTasks.forEach(t => {
+        // หาวันที่ ถ้าไม่มีให้ใช้วันนี้
+        const d = new Date(t.deadline || new Date());
+        if(isNaN(d.getTime())) return; // ข้ามวันที่พัง
+        
+        const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+        
+        if (!monthData[monthKey]) monthData[monthKey] = { total: 0, done: 0 };
+        monthData[monthKey].total++;
+        if (t.status === 'done') monthData[monthKey].done++;
+    });
+
+    const sortedMonths = Object.keys(monthData).sort();
+    const chartLabelsMonth = sortedMonths.map(m => {
+        const [y, mm] = m.split('-');
+        const monthNames = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
+        return `${monthNames[parseInt(mm)-1]} ${y.substring(2)}`;
+    });
+    
+    const dataTotalByMonth = sortedMonths.map(m => monthData[m].total);
+    const dataDoneByMonth = sortedMonths.map(m => monthData[m].done);
+
+    if (chartGrowth) chartGrowth.destroy();
+    chartGrowth = new Chart(el('growthChart'), {
+        type: 'line',
+        data: {
+            labels: chartLabelsMonth.length > 0 ? chartLabelsMonth : ['ไม่มีข้อมูล'],
+            datasets: [
+                {
+                    label: 'งานที่ทำสำเร็จ',
+                    data: dataDoneByMonth.length > 0 ? dataDoneByMonth : [0],
+                    borderColor: '#10b981', // emerald-500
+                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
+                    fill: true,
+                    tension: 0.4
+                },
+                {
+                    label: 'งานทั้งหมดที่เข้ามา',
+                    data: dataTotalByMonth.length > 0 ? dataTotalByMonth : [0],
+                    borderColor: '#64748b', // slate-500
+                    borderDash: [5, 5],
+                    tension: 0.4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { position: 'top' } },
+            scales: {
+                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
+                x: { grid: { display: false } }
+            }
+        }
+    });
+
+    // ---- 2. เตรียมข้อมูลกราฟพนักงาน (Employee Progress) ----
+    const empData = {};
+    filteredTasks.forEach(t => {
+        if (!empData[t.ownerName]) empData[t.ownerName] = { total: 0, done: 0 };
+        empData[t.ownerName].total++;
+        if (t.status === 'done') empData[t.ownerName].done++;
+    });
+
+    const empNames = Object.keys(empData);
+    const empTotal = empNames.map(name => empData[name].total);
+    const empDone = empNames.map(name => empData[name].done);
+
+    if (chartEmployee) chartEmployee.destroy();
+    chartEmployee = new Chart(el('employeeChart'), {
+        type: 'bar',
+        data: {
+            labels: empNames.length > 0 ? empNames : ['ไม่มีข้อมูล'],
+            datasets: [
+                {
+                    label: 'สำเร็จ',
+                    data: empDone.length > 0 ? empDone : [0],
+                    backgroundColor: '#38bdf8', // sky-400
+                    borderRadius: 4
+                },
+                {
+                    label: 'รอดำเนินการ',
+                    data: empNames.map(name => empData[name].total - empData[name].done),
+                    backgroundColor: '#334155', // slate-700
+                    borderRadius: 4
+                }
+            ]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            scales: {
+                x: { stacked: true, grid: { display: false } },
+                y: { stacked: true, beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }
+            }
+        }
+    });
+}
+
+// --- 8. Rendering UI ---
 function renderUI() {
     const { employee, jobType } = appState.filters;
     
-    // กรองข้อมูลตาม Dropdown
     const filteredTasks = appState.tasks.filter(t => {
         const mEmp = employee === 'all' || t.ownerId === employee;
         const mType = jobType === 'all' || t.jobType === jobType;
         return mEmp && mType;
     });
 
+    // วาดกราฟ
+    renderCharts(filteredTasks);
+
     const routineTasks = filteredTasks.filter(t => t.category === 'Routine');
     const adhocTasks = filteredTasks.filter(t => t.category === 'Adhoc');
 
-    // 1. วาดสถิติ
+    // Stats
     const rDone = routineTasks.filter(t => t.status === 'done').length;
     el('routineStat').innerText = routineTasks.length ? `${Math.round((rDone/routineTasks.length)*100)}%` : '0%';
     el('routineCountLabel').innerText = `${rDone}/${routineTasks.length} งานเสร็จสิ้น`;
-    
     el('adhocStat').innerText = adhocTasks.filter(t => t.status !== 'done').length;
     
-    // คำนวณ Overdue & Near (เฉพาะที่ยังไม่เสร็จ)
     let nearCount = 0, overdueCount = 0;
     const today = new Date(appState.selectedDate);
     
     filteredTasks.forEach(t => {
         if (t.status === 'done') return;
-        if (!t.deadline) { nearCount++; return; } // ถือว่าค้าง
+        if (!t.deadline) { nearCount++; return; }
         
-        // ถ้าแปลงวันที่เป็น ISO ได้
         if (/^\d{4}-\d{2}-\d{2}$/.test(t.deadline) || !isNaN(new Date(t.deadline).getTime())) {
              const dl = new Date(t.deadline);
              if (dl < today) overdueCount++;
              else nearCount++;
         } else {
-             nearCount++; // วันที่พัง ถือว่าค้างปกติ
+             nearCount++;
         }
     });
 
     el('nearStat').innerText = nearCount;
     el('overdueStat').innerText = overdueCount;
 
-    // 2. วาด Routine List
+    // Routine List
     const rCont = el('routineContainer');
     if (routineTasks.length === 0) {
         rCont.innerHTML = '<div class="text-center py-10 text-slate-500 text-sm">ไม่พบงาน Routine</div>';
@@ -379,7 +497,7 @@ function renderUI() {
         `).join('');
     }
 
-    // 3. วาด Adhoc Table
+    // Adhoc Table
     const aBody = el('adhocTableBody');
     if (adhocTasks.length === 0) {
         aBody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-slate-500">ไม่พบรายการงาน</td></tr>';
@@ -402,10 +520,8 @@ function renderUI() {
     }
 }
 
-// เริ่มการทำงาน
 init();
 </script>
 </body>
 </html>
-
 
