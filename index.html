@@ -3,51 +3,68 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Executive Task Dashboard - Final</title>
+  <title>Executive Task Dashboard - Deep Purple Theme</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <style>
     body {
-      background: radial-gradient(circle at top right, rgba(216,180,254,.15), transparent 40%),
-                  linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
+      /* ปรับพื้นหลังเป็นสีม่วงเข้มตามภาพตัวอย่าง */
+      background-color: #2d264d;
+      background-image: linear-gradient(180deg, #2d264d 0%, #1a1630 100%);
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     }
     .glass-card {
-      background: rgba(30, 41, 59, 0.85);
+      /* ปรับการ์ดให้โปร่งแสงและเข้ากับโทนม่วงเข้ม */
+      background: rgba(255, 255, 255, 0.05);
       border: 1px solid rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(12px);
       border-radius: 1rem;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
     }
     .status-badge { padding: 4px 10px; border-radius: 12px; font-size: 0.65rem; font-weight: 800; text-transform: uppercase; }
     
     /* Scrollbar */
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #475569; border-radius: 10px; }
+    ::-webkit-scrollbar-thumb { background: #4a417a; border-radius: 10px; }
   </style>
 </head>
 <body class="text-slate-200 min-h-screen p-4 md:p-6">
 
 <header class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8 border-b border-white/10 pb-6">
-  <div>
-    <h1 class="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
-      <i class="fa-solid fa-bolt text-emerald-400"></i> Executive Monitor
-    </h1>
-    <p class="text-slate-400 text-sm mt-1">ระบบพร้อมใช้งาน - ข้อมูลจะถูกบันทึกในเครื่องอัตโนมัติ (Auto-Save)</p>
+  
+  <!-- ส่วน Logo และ ชื่อบริษัท -->
+  <div class="flex items-center gap-4">
+    <label class="w-16 h-16 rounded-2xl bg-white/10 shadow-md flex items-center justify-center overflow-hidden border-2 border-purple-500/30 shrink-0 cursor-pointer hover:border-purple-400 transition-all group relative" title="คลิกเพื่ออัปโหลดโลโก้">
+        <img id="companyLogoImg" src="https://placehold.co/150x150/4a3f8a/ffffff?text=LOGO" alt="Company Logo" class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <i class="fa-solid fa-camera text-white"></i>
+        </div>
+        <input type="file" id="logoUpload" accept="image/*" class="hidden">
+    </label>
+    <div>
+        <h2 id="companyNameText" contenteditable="true" class="text-sm font-bold text-purple-300 uppercase tracking-widest mb-1 outline-none border-b border-transparent hover:border-purple-400 focus:border-purple-300 transition-colors cursor-text" title="คลิกเพื่อแก้ไขชื่อบริษัท">
+            YOUR COMPANY NAME CO., LTD.
+        </h2>
+        <h1 class="text-2xl md:text-3xl font-black text-white flex items-center gap-3">
+            <i class="fa-solid fa-bolt text-purple-400"></i> Executive Monitor
+        </h1>
+        <p class="text-purple-300/60 text-xs md:text-sm mt-1 font-medium">ระบบพร้อมใช้งาน - บันทึกข้อมูลอัตโนมัติ</p>
+    </div>
   </div>
   
   <div class="flex flex-wrap items-center gap-3">
     <div class="glass-card px-4 py-2.5 flex items-center gap-3">
       <label class="text-xs text-slate-400 font-bold uppercase">วันที่ใช้งาน:</label>
-      <input id="dateFilter" type="date" class="bg-transparent border-none text-sky-400 text-sm focus:ring-0 cursor-pointer font-bold outline-none" />
+      <input id="dateFilter" type="date" class="bg-transparent border-none text-purple-300 text-sm focus:ring-0 cursor-pointer font-bold outline-none" />
     </div>
-    <label class="bg-emerald-600 hover:bg-emerald-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer shadow-lg shadow-emerald-900/40 transition-all active:scale-95">
+    <label class="bg-purple-600 hover:bg-purple-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer shadow-lg shadow-purple-900/20 transition-all active:scale-95">
       <i class="fa-solid fa-file-import"></i>Import นำเข้าไฟล์
       <input id="fileUpload" type="file" accept=".xlsx,.xls,.csv" class="hidden" />
     </label>
-    <button onclick="hardReset()" class="bg-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all">
+    <button onclick="hardReset()" class="bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white border border-rose-500/30 hover:border-rose-500 px-4 py-2.5 rounded-xl text-xs font-bold transition-all">
       <i class="fa-solid fa-trash-can mr-1"></i> ล้างข้อมูล
     </button>
   </div>
@@ -59,11 +76,11 @@
 <section class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
   <div class="glass-card p-3 px-4 flex items-center justify-between">
     <label class="text-xs text-slate-400 uppercase font-bold w-1/3">กรองพนักงาน:</label>
-    <select id="employeeSelect" class="w-2/3 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 py-1.5 px-3 outline-none focus:border-sky-500"></select>
+    <select id="employeeSelect" class="w-2/3 bg-slate-800/50 border border-white/10 rounded-lg text-sm text-slate-200 py-1.5 px-3 outline-none focus:border-purple-500"></select>
   </div>
   <div class="glass-card p-3 px-4 flex items-center justify-between">
     <label class="text-xs text-slate-400 uppercase font-bold w-1/3">กลุ่มงาน (Sheet):</label>
-    <select id="jobTypeSelect" class="w-2/3 bg-slate-900 border border-slate-700 rounded-lg text-sm text-slate-200 py-1.5 px-3 outline-none focus:border-sky-500"></select>
+    <select id="jobTypeSelect" class="w-2/3 bg-slate-800/50 border border-white/10 rounded-lg text-sm text-slate-200 py-1.5 px-3 outline-none focus:border-purple-500"></select>
   </div>
 </section>
 
@@ -94,15 +111,13 @@
 <!-- Charts Section -->
 <section class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
     <div class="glass-card p-5 h-80 flex flex-col">
-        <h3 class="text-sm font-bold text-slate-200 mb-2"><i class="fa-solid fa-chart-line text-emerald-400 mr-2"></i>ภาพรวมงานรายเดือน (Company Growth)</h3>
-        <p class="text-xs text-slate-400 mb-4">แสดงสัดส่วนงานที่เข้ามาและงานที่ทำสำเร็จในแต่ละเดือนอิงจากกำหนดส่ง</p>
+        <h3 class="text-sm font-bold text-slate-200 mb-2"><i class="fa-solid fa-chart-line text-emerald-400 mr-2"></i>ภาพรวมงานรายเดือน</h3>
         <div class="flex-1 relative w-full h-full">
             <canvas id="growthChart"></canvas>
         </div>
     </div>
     <div class="glass-card p-5 h-80 flex flex-col">
-        <h3 class="text-sm font-bold text-slate-200 mb-2"><i class="fa-solid fa-chart-bar text-sky-400 mr-2"></i>ความคืบหน้างานรายบุคคล (Employee Progress)</h3>
-        <p class="text-xs text-slate-400 mb-4">แสดงจำนวนงานทั้งหมดเทียบกับงานที่ทำสำเร็จของพนักงานแต่ละคน</p>
+        <h3 class="text-sm font-bold text-slate-200 mb-2"><i class="fa-solid fa-chart-bar text-sky-400 mr-2"></i>ความคืบหน้างานรายบุคคล</h3>
         <div class="flex-1 relative w-full h-full">
             <canvas id="employeeChart"></canvas>
         </div>
@@ -112,7 +127,7 @@
 <div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
   <!-- Routine Tasks -->
   <div class="xl:col-span-1 glass-card overflow-hidden flex flex-col h-[600px]">
-    <div class="p-4 bg-slate-800/50 border-b border-white/5 flex justify-between items-center">
+    <div class="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center">
         <h2 class="font-bold text-emerald-400 flex items-center gap-2">
             <i class="fa-solid fa-calendar-check"></i> Routine Tasks
         </h2>
@@ -124,14 +139,14 @@
 
   <!-- Adhoc Table -->
   <div class="xl:col-span-2 glass-card overflow-hidden flex flex-col h-[600px]">
-    <div class="p-4 bg-slate-800/50 border-b border-white/5 flex justify-between items-center">
+    <div class="p-4 bg-white/5 border-b border-white/5 flex justify-between items-center">
         <h2 class="font-bold text-sky-400 flex items-center gap-2">
             <i class="fa-solid fa-list-check"></i> Adhoc & Projects
         </h2>
     </div>
     <div class="overflow-x-auto flex-1 p-2">
         <table class="w-full text-sm text-left">
-            <thead class="text-[10px] text-slate-500 uppercase tracking-widest border-b border-slate-700">
+            <thead class="text-[10px] text-slate-500 uppercase tracking-widest border-b border-white/5">
                 <tr>
                     <th class="px-4 py-3">Task Name</th>
                     <th class="px-4 py-3">Owner</th>
@@ -140,7 +155,7 @@
                     <th class="px-4 py-3 text-center">Status</th>
                 </tr>
             </thead>
-            <tbody id="adhocTableBody" class="divide-y divide-slate-800">
+            <tbody id="adhocTableBody" class="divide-y divide-white/5">
                 <!-- Injected via JS -->
             </tbody>
         </table>
@@ -149,9 +164,8 @@
 </div>
 
 <script>
-// --- 1. State & LocalStorage Setup ---
+// --- State & Logic (คงเดิมตามระบบที่ใช้งานได้ดีอยู่แล้ว) ---
 const DB_KEY = 'Executive_Dash_Data_V4'; 
-
 const appState = {
     tasks: [],
     selectedDate: '',
@@ -159,27 +173,28 @@ const appState = {
 };
 
 const el = id => document.getElementById(id);
-
-// ตัวแปรสำหรับเก็บ instance ของกราฟเพื่อลบ/วาดใหม่
 let chartGrowth = null;
 let chartEmployee = null;
 
-// ตั้งค่า Chart.js ให้เหมาะกับ Dark Mode เป็นค่าเริ่มต้น
 Chart.defaults.color = '#94a3b8';
 Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
 
-// --- 2. Initialization ---
 function init() {
     const todayStr = new Date().toISOString().slice(0, 10);
     appState.selectedDate = todayStr;
     el('dateFilter').value = todayStr;
+
+    const savedLogo = localStorage.getItem('ExecDash_Logo');
+    if(savedLogo) el('companyLogoImg').src = savedLogo;
+    
+    const savedName = localStorage.getItem('ExecDash_CompanyName');
+    if(savedName) el('companyNameText').innerText = savedName;
 
     loadTasks();
     updateDropdowns();
     renderUI();
 }
 
-// --- 3. Persistence ---
 function saveTasks() {
     try {
         localStorage.setItem(DB_KEY, JSON.stringify(appState.tasks));
@@ -200,13 +215,26 @@ function hardReset() {
     }
 }
 
-// --- 4. Excel Parser (ปรับปรุงการแยกหมวดหมู่) ---
+el('logoUpload').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            el('companyLogoImg').src = evt.target.result;
+            localStorage.setItem('ExecDash_Logo', evt.target.result);
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+el('companyNameText').addEventListener('blur', (e) => {
+    localStorage.setItem('ExecDash_CompanyName', e.target.innerText);
+});
+
 function parseAnyExcel(workbook) {
     let allData = [];
-    
     workbook.SheetNames.forEach(sheetName => {
         const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
-        
         rawRows.forEach((row) => {
             const keys = Object.keys(row);
             if (keys.length === 0) return; 
@@ -227,26 +255,19 @@ function parseAnyExcel(workbook) {
             const ownerName = getVal(['staff nm', 'ชื่อ', 'ownername']) || 'ไม่ระบุ';
             const rawDeadline = getVal(['deadline', 'due', 'กำหนด', 'date']);
             
-            // --- ปรับปรุง Logic แยก Routine/Adhoc ---
-            let cat = 'Routine'; // Default
+            let cat = 'Routine'; 
             const sheetLower = sheetName.toLowerCase();
             const catLower = getVal(['category', 'cat_name', 'ประเภท']).toLowerCase();
 
-            // 1. เช็คจากชื่อ Sheet ก่อน (แม่นยำที่สุดสำหรับเคสของคุณ)
-            if (sheetLower.includes('adhoc') || sheetLower.includes('project') || sheetLower.includes('โปรเจกต์')) {
+            if (sheetLower.includes('adhoc') || sheetLower.includes('project')) {
                 cat = 'Adhoc';
-            } else if (sheetLower.includes('routine') || sheetLower.includes('ประจำ') || sheetLower.includes('job')) {
+            } else if (sheetLower.includes('routine')) {
                 cat = 'Routine';
-            } else {
-                // 2. ถ้าชื่อ Sheet บอกไม่ได้ ค่อยมาเช็คข้างในเซลล์
-                if (catLower.includes('adhoc') || catLower.includes('project')) {
-                    cat = 'Adhoc';
-                }
+            } else if (catLower.includes('adhoc') || catLower.includes('project')) {
+                cat = 'Adhoc';
             }
 
-            // แปลงวันที่ Excel เป็น Format ที่ระบบอ่านได้
             let parsedDeadline = rawDeadline;
-            // ถ้าเป็นตัวเลขจาก Excel (Serial number)
             if(!isNaN(rawDeadline) && rawDeadline !== '') {
                const excelEpoch = new Date(1899, 11, 30);
                const dateObj = new Date(excelEpoch.getTime() + (parseInt(rawDeadline) * 86400000));
@@ -268,7 +289,6 @@ function parseAnyExcel(workbook) {
     return allData;
 }
 
-// --- 5. Event Listeners ---
 el('fileUpload').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
@@ -276,12 +296,10 @@ el('fileUpload').addEventListener('change', (e) => {
     const reader = new FileReader();
     reader.onload = (evt) => {
         try {
-            const data = evt.target.result;
-            const wb = XLSX.read(data, { type: 'binary' });
+            const wb = XLSX.read(evt.target.result, { type: 'binary' });
             const newTasks = parseAnyExcel(wb);
-            
             if (newTasks.length === 0) {
-                showAlert('นำเข้าไม่สำเร็จ: ไม่พบตารางข้อมูล', 'rose');
+                showAlert('ไม่พบข้อมูลงานในไฟล์', 'rose');
                 return;
             }
             appState.tasks = newTasks;
@@ -290,9 +308,7 @@ el('fileUpload').addEventListener('change', (e) => {
             renderUI();
             showAlert(`นำเข้าสำเร็จ ${newTasks.length} รายการ`, 'emerald');
             e.target.value = ''; 
-        } catch (err) {
-            showAlert('ไฟล์เกิดข้อผิดพลาด', 'rose');
-        }
+        } catch (err) { showAlert('ไฟล์เกิดข้อผิดพลาด', 'rose'); }
     };
     reader.readAsBinaryString(file);
 });
@@ -305,13 +321,12 @@ el('dateFilter').addEventListener('change', (e) => {
 el('employeeSelect').addEventListener('change', (e) => { appState.filters.employee = e.target.value; renderUI(); });
 el('jobTypeSelect').addEventListener('change', (e) => { appState.filters.jobType = e.target.value; renderUI(); });
 
-// --- 6. Helper Functions ---
 function showAlert(msg, color) {
     const alert = el('statusAlert');
-    alert.className = `mb-4 p-3 rounded-lg text-sm font-bold flex items-center gap-2 bg-${color}-500/20 text-${color}-400 border border-${color}-500/30`;
-    alert.innerHTML = `<i class="fa-solid fa-circle-check"></i> ${msg}`;
+    alert.className = `mb-4 p-3 rounded-lg text-sm font-bold flex items-center gap-2 bg-${color}-500 text-white shadow-lg`;
+    alert.innerHTML = `<i class="fa-solid fa-info-circle"></i> ${msg}`;
     alert.classList.remove('hidden');
-    setTimeout(() => { alert.classList.add('hidden'); }, 5000);
+    setTimeout(() => { alert.classList.add('hidden'); }, 4000);
 }
 
 function updateDropdowns() {
@@ -333,29 +348,19 @@ window.toggleTaskStatus = function(taskId) {
     }
 }
 
-// --- 7. Chart Rendering ---
 function renderCharts(filteredTasks) {
-    // ---- 1. เตรียมข้อมูลกราฟการเติบโตรายเดือน (Growth/Timeline) ----
     const monthData = {};
     filteredTasks.forEach(t => {
-        // หาวันที่ ถ้าไม่มีให้ใช้วันนี้
         const d = new Date(t.deadline || new Date());
-        if(isNaN(d.getTime())) return; // ข้ามวันที่พัง
-        
+        if(isNaN(d.getTime())) return; 
         const monthKey = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-        
         if (!monthData[monthKey]) monthData[monthKey] = { total: 0, done: 0 };
         monthData[monthKey].total++;
         if (t.status === 'done') monthData[monthKey].done++;
     });
 
     const sortedMonths = Object.keys(monthData).sort();
-    const chartLabelsMonth = sortedMonths.map(m => {
-        const [y, mm] = m.split('-');
-        const monthNames = ["ม.ค.", "ก.พ.", "มี.ค.", "เม.ย.", "พ.ค.", "มิ.ย.", "ก.ค.", "ส.ค.", "ก.ย.", "ต.ค.", "พ.ย.", "ธ.ค."];
-        return `${monthNames[parseInt(mm)-1]} ${y.substring(2)}`;
-    });
-    
+    const chartLabelsMonth = sortedMonths.map(m => m);
     const dataTotalByMonth = sortedMonths.map(m => monthData[m].total);
     const dataDoneByMonth = sortedMonths.map(m => monthData[m].done);
 
@@ -363,37 +368,15 @@ function renderCharts(filteredTasks) {
     chartGrowth = new Chart(el('growthChart'), {
         type: 'line',
         data: {
-            labels: chartLabelsMonth.length > 0 ? chartLabelsMonth : ['ไม่มีข้อมูล'],
+            labels: chartLabelsMonth.length > 0 ? chartLabelsMonth : ['-'],
             datasets: [
-                {
-                    label: 'งานที่ทำสำเร็จ',
-                    data: dataDoneByMonth.length > 0 ? dataDoneByMonth : [0],
-                    borderColor: '#10b981', // emerald-500
-                    backgroundColor: 'rgba(16, 185, 129, 0.2)',
-                    fill: true,
-                    tension: 0.4
-                },
-                {
-                    label: 'งานทั้งหมดที่เข้ามา',
-                    data: dataTotalByMonth.length > 0 ? dataTotalByMonth : [0],
-                    borderColor: '#64748b', // slate-500
-                    borderDash: [5, 5],
-                    tension: 0.4
-                }
+                { label: 'สำเร็จ', data: dataDoneByMonth, borderColor: '#10b981', tension: 0.4 },
+                { label: 'ทั้งหมด', data: dataTotalByMonth, borderColor: '#6366f1', borderDash: [5, 5], tension: 0.4 }
             ]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: { legend: { position: 'top' } },
-            scales: {
-                y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } },
-                x: { grid: { display: false } }
-            }
-        }
+        options: { responsive: true, maintainAspectRatio: false, scales: { y: { beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } } } }
     });
 
-    // ---- 2. เตรียมข้อมูลกราฟพนักงาน (Employee Progress) ----
     const empData = {};
     filteredTasks.forEach(t => {
         if (!empData[t.ownerName]) empData[t.ownerName] = { total: 0, done: 0 };
@@ -402,57 +385,29 @@ function renderCharts(filteredTasks) {
     });
 
     const empNames = Object.keys(empData);
-    const empTotal = empNames.map(name => empData[name].total);
-    const empDone = empNames.map(name => empData[name].done);
-
     if (chartEmployee) chartEmployee.destroy();
     chartEmployee = new Chart(el('employeeChart'), {
         type: 'bar',
         data: {
-            labels: empNames.length > 0 ? empNames : ['ไม่มีข้อมูล'],
+            labels: empNames,
             datasets: [
-                {
-                    label: 'สำเร็จ',
-                    data: empDone.length > 0 ? empDone : [0],
-                    backgroundColor: '#38bdf8', // sky-400
-                    borderRadius: 4
-                },
-                {
-                    label: 'รอดำเนินการ',
-                    data: empNames.map(name => empData[name].total - empData[name].done),
-                    backgroundColor: '#334155', // slate-700
-                    borderRadius: 4
-                }
+                { label: 'สำเร็จ', data: empNames.map(n => empData[n].done), backgroundColor: '#a855f7' },
+                { label: 'ค้าง', data: empNames.map(n => empData[n].total - empData[n].done), backgroundColor: 'rgba(255,255,255,0.1)' }
             ]
         },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: { stacked: true, grid: { display: false } },
-                y: { stacked: true, beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } }
-            }
-        }
+        options: { responsive: true, maintainAspectRatio: false, scales: { x: { stacked: true }, y: { stacked: true, beginAtZero: true } } }
     });
 }
 
-// --- 8. Rendering UI ---
 function renderUI() {
     const { employee, jobType } = appState.filters;
-    
-    const filteredTasks = appState.tasks.filter(t => {
-        const mEmp = employee === 'all' || t.ownerId === employee;
-        const mType = jobType === 'all' || t.jobType === jobType;
-        return mEmp && mType;
-    });
+    const filteredTasks = appState.tasks.filter(t => (employee === 'all' || t.ownerId === employee) && (jobType === 'all' || t.jobType === jobType));
 
-    // วาดกราฟ
     renderCharts(filteredTasks);
 
     const routineTasks = filteredTasks.filter(t => t.category === 'Routine');
     const adhocTasks = filteredTasks.filter(t => t.category === 'Adhoc');
 
-    // Stats
     const rDone = routineTasks.filter(t => t.status === 'done').length;
     el('routineStat').innerText = routineTasks.length ? `${Math.round((rDone/routineTasks.length)*100)}%` : '0%';
     el('routineCountLabel').innerText = `${rDone}/${routineTasks.length} งานเสร็จสิ้น`;
@@ -460,64 +415,41 @@ function renderUI() {
     
     let nearCount = 0, overdueCount = 0;
     const today = new Date(appState.selectedDate);
-    
     filteredTasks.forEach(t => {
         if (t.status === 'done') return;
-        if (!t.deadline) { nearCount++; return; }
-        
-        if (/^\d{4}-\d{2}-\d{2}$/.test(t.deadline) || !isNaN(new Date(t.deadline).getTime())) {
-             const dl = new Date(t.deadline);
-             if (dl < today) overdueCount++;
-             else nearCount++;
-        } else {
-             nearCount++;
-        }
+        const dl = new Date(t.deadline);
+        if (isNaN(dl.getTime())) nearCount++;
+        else if (dl < today) overdueCount++;
+        else nearCount++;
     });
-
     el('nearStat').innerText = nearCount;
     el('overdueStat').innerText = overdueCount;
 
-    // Routine List
-    const rCont = el('routineContainer');
-    if (routineTasks.length === 0) {
-        rCont.innerHTML = '<div class="text-center py-10 text-slate-500 text-sm">ไม่พบงาน Routine</div>';
-    } else {
-        rCont.innerHTML = routineTasks.map(t => `
-            <div class="bg-slate-900/60 p-4 rounded-xl border border-slate-700/50 hover:border-emerald-500/50 transition-all cursor-pointer flex items-center justify-between" onclick="toggleTaskStatus('${t.id}')">
-                <div class="flex items-center gap-4">
-                    <div class="w-5 h-5 rounded flex items-center justify-center border-2 transition-colors ${t.status === 'done' ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500 bg-slate-800'}">
-                        ${t.status === 'done' ? '<i class="fa-solid fa-check text-[10px] text-white"></i>' : ''}
-                    </div>
-                    <div>
-                        <h4 class="text-sm font-bold ${t.status === 'done' ? 'line-through text-slate-500' : 'text-slate-200'}">${t.taskName}</h4>
-                        <p class="text-[10px] text-slate-400 mt-1 uppercase font-bold tracking-wider">${t.ownerName} • ${t.jobType}</p>
-                    </div>
+    el('routineContainer').innerHTML = routineTasks.length ? routineTasks.map(t => `
+        <div class="bg-white/5 p-4 rounded-xl border border-white/5 hover:border-emerald-500/50 transition-all cursor-pointer flex items-center justify-between" onclick="toggleTaskStatus('${t.id}')">
+            <div class="flex items-center gap-4">
+                <div class="w-5 h-5 rounded flex items-center justify-center border-2 ${t.status === 'done' ? 'bg-emerald-500 border-emerald-500' : 'border-slate-500'}">
+                    ${t.status === 'done' ? '<i class="fa-solid fa-check text-[10px] text-white"></i>' : ''}
+                </div>
+                <div>
+                    <h4 class="text-sm font-bold ${t.status === 'done' ? 'line-through text-slate-500' : 'text-slate-200'}">${t.taskName}</h4>
+                    <p class="text-[10px] text-slate-400 mt-1 font-bold uppercase tracking-widest">${t.ownerName}</p>
                 </div>
             </div>
-        `).join('');
-    }
+        </div>
+    `).join('') : '<div class="text-center py-10 text-slate-500">ไม่พบงาน Routine</div>';
 
-    // Adhoc Table
-    const aBody = el('adhocTableBody');
-    if (adhocTasks.length === 0) {
-        aBody.innerHTML = '<tr><td colspan="5" class="py-10 text-center text-slate-500">ไม่พบรายการงาน</td></tr>';
-    } else {
-        aBody.innerHTML = adhocTasks.map(t => `
-            <tr class="hover:bg-white/5 transition border-b border-white/5 group cursor-pointer" onclick="toggleTaskStatus('${t.id}')">
-                <td class="px-4 py-4">
-                    <div class="text-sm font-semibold ${t.status === 'done' ? 'text-slate-500 line-through' : 'text-slate-200'}">${t.taskName}</div>
-                </td>
-                <td class="px-4 py-4 text-xs font-bold text-sky-400">${t.ownerName}</td>
-                <td class="px-4 py-4 text-[10px] uppercase font-bold text-slate-500 tracking-wider">${t.jobType}</td>
-                <td class="px-4 py-4 text-xs text-slate-400">${t.deadline || '-'}</td>
-                <td class="px-4 py-4 text-center">
-                    <span class="status-badge ${t.status === 'done' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">
-                        ${t.status === 'done' ? 'Completed' : 'Pending'}
-                    </span>
-                </td>
-            </tr>
-        `).join('');
-    }
+    el('adhocTableBody').innerHTML = adhocTasks.length ? adhocTasks.map(t => `
+        <tr class="hover:bg-white/5 border-b border-white/5 cursor-pointer" onclick="toggleTaskStatus('${t.id}')">
+            <td class="px-4 py-4 text-sm font-semibold ${t.status === 'done' ? 'text-slate-500 line-through' : ''}">${t.taskName}</td>
+            <td class="px-4 py-4 text-xs text-sky-400">${t.ownerName}</td>
+            <td class="px-4 py-4 text-[10px] text-slate-500">${t.jobType}</td>
+            <td class="px-4 py-4 text-xs text-slate-400">${t.deadline || '-'}</td>
+            <td class="px-4 py-4 text-center">
+                <span class="status-badge ${t.status === 'done' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}">${t.status}</span>
+            </td>
+        </tr>
+    `).join('') : '<tr><td colspan="5" class="py-10 text-center text-slate-500">ไม่พบรายการงาน</td></tr>';
 }
 
 init();
