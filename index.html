@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Executive Task Dashboard - Deep Purple Theme</title>
+  <title>Executive Task Dashboard - Final PRO</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -39,15 +39,24 @@
 
 <!-- Header & Controls -->
 <header class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8 border-b border-white/10 pb-6">
+  
+  <!-- ส่วน Logo และ ชื่อบริษัท -->
   <div class="flex items-center gap-4">
-    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 shadow-lg shadow-purple-500/20 flex items-center justify-center shrink-0">
-        <i class="fa-solid fa-chart-pie text-2xl text-white"></i>
-    </div>
+    <label class="w-16 h-16 rounded-2xl bg-white/5 shadow-lg shadow-purple-500/20 flex items-center justify-center overflow-hidden border border-purple-500/30 shrink-0 cursor-pointer hover:border-purple-400 transition-all group relative" title="คลิกเพื่ออัปโหลดโลโก้">
+        <img id="companyLogoImg" src="https://placehold.co/150x150/4a3f8a/ffffff?text=LOGO" alt="Company Logo" class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <i class="fa-solid fa-camera text-white"></i>
+        </div>
+        <input type="file" id="logoUpload" accept="image/*" class="hidden">
+    </label>
     <div>
-        <h1 class="text-2xl md:text-3xl font-black text-white tracking-wide">
+        <h2 id="companyNameText" contenteditable="true" class="text-sm font-bold text-purple-400 uppercase tracking-widest mb-1 outline-none border-b border-transparent hover:border-purple-400 focus:border-purple-300 transition-colors cursor-text" title="คลิกเพื่อแก้ไขชื่อบริษัท">
+            YOUR COMPANY NAME
+        </h2>
+        <h1 class="text-2xl md:text-3xl font-black text-white tracking-wide flex items-center gap-3">
             Executive Monitor
         </h1>
-        <p class="text-purple-300/80 text-xs md:text-sm mt-1">ระบบวิเคราะห์ข้อมูล P/S/N และดูประวัติย้อนหลังอัตโนมัติ</p>
+        <p class="text-purple-300/80 text-xs md:text-sm mt-1">Progress</p>
     </div>
   </div>
   
@@ -56,11 +65,11 @@
       <label class="text-xs text-purple-300 font-bold uppercase tracking-widest"><i class="fa-solid fa-clock-rotate-left mr-1"></i> ดูงานวันที่:</label>
       <input id="dateFilter" type="date" class="bg-transparent border-none text-white text-sm focus:ring-0 cursor-pointer font-bold outline-none" />
     </div>
-    <label class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer shadow-lg shadow-indigo-900/40 transition-all active:scale-95 border border-indigo-400/30">
-      <i class="fa-solid fa-file-import"></i> อัปโหลดไฟล์ (CSV/XLSX)
+    <label class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer shadow-lg shadow-indigo-900/40 transition-all active:scale-95 border border-indigo-400/30" title="รองรับไฟล์จากเครื่องและ Google Drive">
+      <i class="fa-solid fa-cloud-arrow-up"></i> อัปโหลดไฟล์ (csv\xlsx)
       <input id="fileUpload" type="file" accept=".xlsx,.xls,.csv" class="hidden" />
     </label>
-    <button onclick="hardReset()" class="bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white border border-rose-500/30 hover:border-rose-500 px-4 py-2.5 rounded-xl text-xs font-bold transition-all" title="ล้างข้อมูลในเครื่อง">
+    <button onclick="hardReset()" class="bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white border border-rose-500/30 hover:border-rose-500 px-4 py-2.5 rounded-xl text-xs font-bold transition-all" title="ล้างข้อมูลไฟล์งาน (ไม่ลบโลโก้)">
       <i class="fa-solid fa-trash-can"></i>
     </button>
   </div>
@@ -157,7 +166,7 @@
 </div>
 
 <script>
-// --- 1. System Setup ---
+// --- 1. System Setup & Persistence ---
 const DB_KEY = 'Executive_Dash_V10_PRO'; 
 const appState = {
     tasks: [], 
@@ -172,6 +181,13 @@ function init() {
     appState.selectedDate = todayStr;
     el('dateFilter').value = todayStr;
 
+    // ระบบจดจำโลโก้และชื่อบริษัท (Local Storage)
+    const savedLogo = localStorage.getItem('ExecDash_Logo_PRO');
+    if(savedLogo) el('companyLogoImg').src = savedLogo;
+    
+    const savedName = localStorage.getItem('ExecDash_CompanyName_PRO');
+    if(savedName) el('companyNameText').innerText = savedName;
+
     loadTasks();
     updateDropdowns();
     renderUI();
@@ -183,11 +199,28 @@ function loadTasks() {
     if (stored) appState.tasks = JSON.parse(stored);
 }
 function hardReset() {
-    if(confirm('ล้างข้อมูลที่อัปโหลดไว้ทั้งหมดใช่หรือไม่?')) {
+    if(confirm('ล้างข้อมูลไฟล์งานทั้งหมดใช่หรือไม่? (โลโก้และชื่อบริษัทจะยังคงอยู่)')) {
         localStorage.removeItem(DB_KEY);
         location.reload();
     }
 }
+
+// Event สำหรับบันทึก Logo และ ชื่อบริษัท
+el('logoUpload').addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = (evt) => {
+            el('companyLogoImg').src = evt.target.result;
+            localStorage.setItem('ExecDash_Logo_PRO', evt.target.result);
+        };
+        reader.readAsDataURL(file);
+    }
+});
+
+el('companyNameText').addEventListener('blur', (e) => {
+    localStorage.setItem('ExecDash_CompanyName_PRO', e.target.innerText);
+});
 
 function showAlert(msg, color, icon='fa-info-circle') {
     const alert = el('statusAlert');
@@ -197,27 +230,27 @@ function showAlert(msg, color, icon='fa-info-circle') {
     setTimeout(() => { alert.classList.add('hidden'); }, 5000);
 }
 
-// --- 2. Advanced AI Parser (อัปเดตพิเศษให้รองรับไฟล์ลูกค้า) ---
+// --- 2. Advanced AI Parser ---
 function parseDateKey(k) {
     if (!k) return null;
     let strK = String(k).trim();
     
-    // แบบที่ 1: YYYY-MM-DD
+    // YYYY-MM-DD
     let m = strK.match(/^(\d{4})[\/\-](\d{1,2})[\/\-](\d{1,2})$/);
     if (m) return `${m[1]}-${m[2].padStart(2, '0')}-${m[3].padStart(2, '0')}`;
     
-    // แบบที่ 2: DD/MM/YYYY หรือ MM/DD/YYYY
+    // DD/MM/YYYY หรือ MM/DD/YYYY
     m = strK.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{2,4})$/);
     if (m) {
         let yy = parseInt(m[3]);
         if (yy < 100) yy += 2000;
         let p1 = parseInt(m[1]), p2 = parseInt(m[2]);
-        let mm = p2, dd = p1; // ให้ค่าเริ่มต้นเป็นแบบไทย/อังกฤษ DD/MM/YYYY
-        if (p1 > 12) { mm = p1; dd = p2; } // ถ้าตัวแรกเกิน 12 ต้องสลับ
+        let mm = p2, dd = p1; 
+        if (p1 > 12) { mm = p1; dd = p2; }
         return `${yy}-${String(mm).padStart(2,'0')}-${String(dd).padStart(2,'0')}`;
     }
 
-    // แบบที่ 3: Excel Serial Date (ตัวเลข 5 หลัก)
+    // Excel Serial Date
     const num = parseFloat(strK);
     if (!isNaN(num) && num > 30000 && num < 70000) {
         const d = new Date(Math.round((num - 25569) * 86400 * 1000));
@@ -235,11 +268,9 @@ function parseExcelData(workbook) {
         // ข้ามเฉพาะ Sheet ที่ไม่ต้องการ (เช่น Master Data)
         if (sLower.includes('master') || sLower.includes('ข้อมูล')) return;
 
-        // แยกหมวดหมู่จากชื่อ Sheet (รวมถึง Compliant ด้วย)
         let baseCategory = 'Routine';
         if (sLower.includes('adhoc') || sLower.includes('project') || sLower.includes('compliant')) baseCategory = 'Adhoc';
 
-        // ใช้ raw: false เพื่อดึงค่าที่ format มาแล้วให้อ่านง่ายขึ้น
         const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '', raw: false });
 
         rawRows.forEach((row) => {
@@ -251,19 +282,15 @@ function parseExcelData(workbook) {
                 return k ? String(row[k]).trim() : '';
             };
 
-            // 1. หาชื่องาน (รองรับ Job Name, TASK)
             let taskName = getVal(['task', 'job name', 'ชื่องาน', 'รายการ']);
             if (!taskName || taskName === 'ไม่ได้ระบุชื่องาน' || taskName.includes('Company Name') || taskName.toLowerCase() === 'task') return;
 
-            // 2. หาชื่อพนักงาน (รองรับ Owner, Onwer ที่พิมพ์ผิดในไฟล์)
             let ownerName = getVal(['owner', 'onwer', 'ผู้รับผิดชอบ', 'พนักงาน']);
             if (!ownerName) ownerName = 'ไม่ระบุ';
 
-            // 3. หากลุ่มงาน
             let jobType = getVal(['category', 'กลุ่มงาน', 'ประเภท']);
             if (!jobType) jobType = sheetName;
 
-            // 4. ตรวจสอบว่าเป็นตารางแบบ Matrix (หัวคอลัมน์เป็นวันที่) หรือ Row ปกติ
             let isMatrixFormat = false;
             
             keys.forEach(k => {
@@ -290,7 +317,7 @@ function parseExcelData(workbook) {
                 }
             });
 
-            // 5. ถ้าไม่ใช่ Matrix ให้ดึงวันที่จากคอลัมน์ Deadline แทน
+            // ถ้าไม่ใช่ Matrix
             if (!isMatrixFormat) {
                 const rawDate = getVal(['deadline date', 'deadline', 'กำหนด', 'date']);
                 let parsedDate = parseDateKey(rawDate) || new Date().toISOString().slice(0,10);
@@ -318,7 +345,7 @@ function parseExcelData(workbook) {
 el('fileUpload').addEventListener('change', (e) => {
     const file = e.target.files[0];
     if (!file) return;
-    showAlert('กำลังวิเคราะห์โครงสร้างไฟล์และแยกหมวดหมู่...', 'sky', 'fa-spinner fa-spin');
+    showAlert('กำลังวิเคราะห์โครงสร้างไฟล์และดึงข้อมูล...', 'sky', 'fa-spinner fa-spin');
     
     const reader = new FileReader();
     reader.onload = (evt) => {
@@ -335,7 +362,7 @@ el('fileUpload').addEventListener('change', (e) => {
             saveTasks(); 
             updateDropdowns();
             renderUI();
-            showAlert(`นำเข้าสำเร็จ! พบประวัติงาน ${newTasks.length} รายการ (รองรับดูย้อนหลัง)`, 'emerald', 'fa-check-circle');
+            showAlert(`นำเข้าสำเร็จ! พบประวัติงาน ${newTasks.length} รายการ`, 'emerald', 'fa-check-circle');
             e.target.value = ''; 
         } catch (err) { 
             console.error(err);
@@ -365,7 +392,7 @@ function updateDropdowns() {
         types.map(t => `<option value="${t}">${t}</option>`).join('');
 }
 
-// อัปเดตสถานะ P/S/N ลงระบบและ LocalStorage
+// อัปเดตสถานะ
 window.changeTaskStatus = function(taskId, newStatus) {
     const task = appState.tasks.find(t => t.id === taskId);
     if (task) {
@@ -375,21 +402,17 @@ window.changeTaskStatus = function(taskId, newStatus) {
     }
 }
 
-// --- 4. Rendering UI (ระบบ Time Machine) ---
+// --- 4. Rendering UI ---
 function renderUI() {
     const { employee, jobType } = appState.filters;
     const targetDate = appState.selectedDate; 
 
-    // ดึงงาน *เฉพาะที่ถูกมอบหมายในวันที่เลือกเท่านั้น* (Time Machine Logic)
     const dateFilteredTasks = appState.tasks.filter(t => t.date === targetDate);
-
-    // กรองพนักงานและกลุ่มงานต่อ
     const finalFiltered = dateFilteredTasks.filter(t => 
         (employee === 'all' || t.ownerName === employee) && 
         (jobType === 'all' || t.jobType === jobType)
     );
 
-    // คำนวณ Stats P/S/N ของวันนี้
     let countS = 0, countP = 0, countN = 0;
     finalFiltered.forEach(t => {
         if(t.status === 'done') countS++;
@@ -405,14 +428,12 @@ function renderUI() {
     const doneRoutine = finalFiltered.filter(t => t.category === 'Routine' && t.status === 'done').length;
     el('percentStat').innerText = totalRoutine ? `${Math.round((doneRoutine/totalRoutine)*100)}%` : '0%';
 
-    // Update Labels
     el('routineDateLabel').innerText = `ข้อมูล ณ วันที่: ${targetDate}`;
     el('adhocDateLabel').innerText = `ข้อมูล ณ วันที่: ${targetDate}`;
 
-    // วาด Routine List
     const routineTasks = finalFiltered.filter(t => t.category === 'Routine');
     el('routineContainer').innerHTML = routineTasks.length ? routineTasks.map(t => {
-        let borderClass = 'border-slate-700/50', icon = '';
+        let borderClass = 'border-slate-700/50';
         if(t.status === 'done') { borderClass = 'border-emerald-500/50 bg-emerald-900/10'; }
         else if(t.status === 'pending') { borderClass = 'border-amber-500/50 bg-amber-900/10'; }
         
@@ -439,7 +460,6 @@ function renderUI() {
             <p class="text-sm font-bold uppercase tracking-wider">ไม่มีงาน Routine</p>
         </div>`;
 
-    // วาด Adhoc Table
     const adhocTasks = finalFiltered.filter(t => t.category === 'Adhoc');
     el('adhocTableBody').innerHTML = adhocTasks.length ? adhocTasks.map(t => {
         let textClass = 'text-slate-400';
