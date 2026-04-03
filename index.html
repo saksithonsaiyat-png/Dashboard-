@@ -3,24 +3,24 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Executive Task Dashboard - Enterprise Edition</title>
+  <title>Executive Task Dashboard - Enterprise Level</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <style>
     body {
-      background-color: #1a1625;
-      background-image: radial-gradient(circle at top right, #2a2344 0%, #1a1625 100%);
+      background-color: #211c38;
+      background-image: linear-gradient(180deg, #211c38 0%, #151226 100%);
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       color: #e2e8f0;
     }
     .glass-card {
-      background: rgba(25, 20, 40, 0.75);
-      border: 1px solid rgba(255, 255, 255, 0.05);
-      backdrop-filter: blur(20px);
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      backdrop-filter: blur(16px);
       border-radius: 1rem;
-      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.4);
+      box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.3);
     }
     .status-select {
         appearance: none;
@@ -30,43 +30,50 @@
         background-size: 1em 1em;
     }
     ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+    ::-webkit-scrollbar-track { background: rgba(0,0,0,0.1); }
     ::-webkit-scrollbar-thumb { background: #5b4a99; border-radius: 10px; }
     ::-webkit-scrollbar-thumb:hover { background: #7c66c7; }
   </style>
 </head>
 <body class="min-h-screen p-4 md:p-6 pb-20">
 
-<!-- Header -->
-<header class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-6 border-b border-white/10 pb-6">
+<!-- Header & Controls -->
+<header class="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-6 mb-8 border-b border-white/10 pb-6">
   <div class="flex items-center gap-4">
-    <div class="w-14 h-14 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 shadow-lg flex items-center justify-center shrink-0">
-        <i class="fa-solid fa-chart-line text-2xl text-white"></i>
-    </div>
+    <label class="w-16 h-16 rounded-2xl bg-white/5 shadow-lg shadow-purple-500/20 flex items-center justify-center overflow-hidden border border-purple-500/30 shrink-0 cursor-pointer hover:border-purple-400 transition-all group relative">
+        <img id="companyLogoImg" src="https://placehold.co/150x150/4a3f8a/ffffff?text=LOGO" alt="Company Logo" class="w-full h-full object-cover">
+        <div class="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+            <i class="fa-solid fa-camera text-white"></i>
+        </div>
+        <input type="file" id="logoUpload" accept="image/*" class="hidden">
+    </label>
     <div>
+        <h2 id="companyNameText" class="text-sm font-bold text-purple-400 uppercase tracking-widest mb-1 outline-none border-b border-transparent hover:border-purple-400 focus:border-purple-300 transition-colors cursor-text" contenteditable="true" title="คลิกเพื่อแก้ไข หรืออัปโหลดไฟล์ Master Data">
+            YOUR COMPANY NAME
+        </h2>
         <h1 class="text-2xl md:text-3xl font-black text-white tracking-wide flex items-center gap-3">
-            Executive Monitor <span class="text-[10px] bg-purple-600/50 border border-purple-400/50 px-2 py-1 rounded-full uppercase tracking-widest text-purple-200 align-middle"><i class="fa-solid fa-clock-rotate-left mr-1"></i>Time Machine</span>
+            Executive Monitor <span class="text-[10px] bg-purple-600 px-2 py-1 rounded-full uppercase tracking-widest text-white align-middle">Time Machine</span>
         </h1>
-        <p class="text-purple-300/80 text-xs mt-1">วิเคราะห์ข้อมูล P/S/N อัตโนมัติ (Routine, Adhoc, Compliant)</p>
+        <p class="text-purple-300/80 text-xs mt-1">อัปเดตข้อมูลอัตโนมัติจากไฟล์ Group A/B, Adhoc, Compliant</p>
     </div>
   </div>
   
   <div class="flex flex-wrap items-center gap-3">
-    <div class="glass-card px-4 py-2 flex items-center gap-3 border-purple-500/30 bg-purple-900/20">
-      <label class="text-xs text-purple-300 font-bold uppercase tracking-widest"><i class="fa-solid fa-calendar-day mr-1"></i> ดูงานวันที่:</label>
+    <div class="glass-card px-4 py-2.5 flex items-center gap-3 border-purple-500/30 bg-purple-900/20">
+      <label class="text-xs text-purple-300 font-bold uppercase tracking-widest"><i class="fa-solid fa-clock-rotate-left mr-1"></i> ดูงานวันที่:</label>
       <input id="dateFilter" type="date" class="bg-transparent border-none text-white text-sm focus:ring-0 cursor-pointer font-bold outline-none" />
     </div>
-    <label class="bg-indigo-600 hover:bg-indigo-500 text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer shadow-lg shadow-indigo-900/40 transition-all border border-indigo-400/30">
-      <i class="fa-solid fa-file-excel"></i> นำเข้าไฟล์ (CSV/XLSX)
-      <input id="fileUpload" type="file" accept=".xlsx,.xls,.csv" class="hidden" />
+    <label class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer shadow-lg shadow-indigo-900/40 transition-all active:scale-95 border border-indigo-400/30">
+      <i class="fa-solid fa-file-excel"></i> นำเข้าไฟล์ลูกค้า (CSV/XLSX)
+      <input id="fileUpload" type="file" accept=".xlsx,.xls,.csv" class="hidden" multiple />
     </label>
     <button onclick="hardReset()" class="bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white border border-rose-500/30 hover:border-rose-500 px-4 py-2.5 rounded-xl text-xs font-bold transition-all">
-      ล้างข้อมูล
+      <i class="fa-solid fa-trash-can"></i> ล้าง
     </button>
   </div>
 </header>
 
-<div id="statusAlert" class="hidden mb-6 p-4 rounded-xl text-sm font-bold flex items-center gap-3 shadow-lg"></div>
+<div id="statusAlert" class="hidden mb-6 p-4 rounded-xl text-sm font-medium flex items-center gap-3 shadow-lg"></div>
 
 <!-- Dropdown Filters -->
 <section class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
@@ -85,27 +92,27 @@
   <div class="glass-card p-5 border-t-2 border-emerald-500 relative overflow-hidden">
     <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Success (S)</p>
     <h3 id="successStat" class="text-4xl font-black text-emerald-400 relative z-10">0</h3>
-    <p class="text-[10px] text-slate-500 mt-1">งานสำเร็จในวันนี้</p>
+    <p class="text-[10px] text-slate-500 mt-1">งานที่สำเร็จในวันที่เลือก</p>
   </div>
   <div class="glass-card p-5 border-t-2 border-amber-500 relative overflow-hidden">
     <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Pending (P)</p>
     <h3 id="pendingStat" class="text-4xl font-black text-amber-400 relative z-10">0</h3>
-    <p class="text-[10px] text-slate-500 mt-1">กำลังทำในวันนี้</p>
+    <p class="text-[10px] text-slate-500 mt-1">งานที่กำลังทำในวันที่เลือก</p>
   </div>
   <div class="glass-card p-5 border-t-2 border-slate-500 relative overflow-hidden">
     <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Not Run (N)</p>
     <h3 id="notrunStat" class="text-4xl font-black text-slate-400 relative z-10">0</h3>
-    <p class="text-[10px] text-slate-500 mt-1">ยังไม่เริ่มในวันนี้</p>
+    <p class="text-[10px] text-slate-500 mt-1">งานที่ยังไม่เริ่มในวันที่เลือก</p>
   </div>
   <div class="glass-card p-5 border-t-2 border-indigo-500 relative overflow-hidden">
-    <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Company Performance</p>
+    <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Routine Progress</p>
     <h3 id="percentStat" class="text-4xl font-black text-indigo-400 relative z-10">0%</h3>
-    <p class="text-[10px] text-slate-500 mt-1">S / งานทั้งหมด</p>
+    <p class="text-[10px] text-slate-500 mt-1">ความสำเร็จของงานประจำ</p>
   </div>
 </section>
 
 <!-- Charts Section -->
-<section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+<section class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
     <div class="glass-card p-5 h-72 flex flex-col lg:col-span-1">
         <h3 class="text-sm font-bold text-slate-200 mb-2 flex justify-between">
             <span><i class="fa-solid fa-chart-pie text-indigo-400 mr-2"></i>ภาพรวมบริษัท (วันนี้)</span>
@@ -127,12 +134,17 @@
 <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
   
   <!-- Routine Tasks (Group A, B) -->
-  <div class="xl:col-span-6 glass-card overflow-hidden flex flex-col h-[750px] border border-emerald-500/20">
-    <div class="p-4 bg-emerald-900/20 border-b border-white/5 flex justify-between items-center">
+  <div class="xl:col-span-5 glass-card overflow-hidden flex flex-col h-[750px]">
+    <div class="p-4 bg-black/20 border-b border-white/5 flex justify-between items-center">
         <h2 class="font-bold text-emerald-400 flex items-center gap-2">
-            <i class="fa-solid fa-users-gear"></i> Routine Monitoring (Group A/B)
+            <i class="fa-solid fa-calendar-check"></i> งานประจำ (Routine Matrix)
         </h2>
-        <span class="text-[10px] bg-black/40 px-2 py-1 rounded text-slate-300 font-mono" id="routineDateLabel"></span>
+        <span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded font-bold" id="routineDateLabel"></span>
+    </div>
+    <div class="p-2 border-b border-white/5 bg-white/5 flex text-[10px] uppercase font-bold text-slate-500 tracking-widest text-center">
+        <div class="w-1/2 text-left pl-2">ชื่องาน (Task)</div>
+        <div class="w-1/4">พนักงาน</div>
+        <div class="w-1/4 pr-2">สถานะ</div>
     </div>
     <div id="routineContainer" class="p-4 space-y-4 overflow-y-auto flex-1">
         <!-- Injected via JS -->
@@ -140,19 +152,25 @@
   </div>
 
   <!-- Right Column (Adhoc & Compliant) -->
-  <div class="xl:col-span-6 flex flex-col gap-6 h-[750px]">
+  <div class="xl:col-span-7 flex flex-col gap-6 h-[750px]">
       
       <!-- Adhoc Table -->
-      <div class="glass-card overflow-hidden flex flex-col h-1/2 border border-sky-500/20">
-        <div class="p-4 bg-sky-900/20 border-b border-white/5 flex justify-between items-center">
+      <div class="glass-card overflow-hidden flex flex-col flex-1 border-sky-500/30">
+        <div class="p-4 bg-black/20 border-b border-sky-500/20 flex justify-between items-center">
             <h2 class="font-bold text-sky-400 flex items-center gap-2">
                 <i class="fa-solid fa-list-check"></i> งานเฉพาะกิจ (Adhoc Monitoring)
             </h2>
         </div>
         <div class="overflow-y-auto flex-1 p-2">
             <table class="w-full text-sm text-left">
-                <thead class="text-[10px] text-slate-400 uppercase tracking-widest border-b border-white/5 bg-black/20 sticky top-0 backdrop-blur-md">
-                    <tr><th class="px-4 py-2">ชื่องาน</th><th class="px-4 py-2">ผู้รับผิดชอบ</th><th class="px-4 py-2">หมวด</th><th class="px-4 py-2">Deadline</th><th class="px-4 py-2 text-center">สถานะ</th></tr>
+                <thead class="text-[10px] text-slate-500 uppercase tracking-widest border-b border-white/5 bg-black/10 sticky top-0 backdrop-blur-md z-10">
+                    <tr>
+                        <th class="px-4 py-2">ชื่องาน (Job Name)</th>
+                        <th class="px-4 py-2">ผู้รับผิดชอบ</th>
+                        <th class="px-4 py-2">กลุ่มงาน</th>
+                        <th class="px-4 py-2">Deadline</th>
+                        <th class="px-4 py-2 text-center">สถานะ</th>
+                    </tr>
                 </thead>
                 <tbody id="adhocTableBody" class="divide-y divide-white/5"></tbody>
             </table>
@@ -160,16 +178,22 @@
       </div>
 
       <!-- Compliant Table -->
-      <div class="glass-card overflow-hidden flex flex-col h-1/2 border border-rose-500/20">
-        <div class="p-4 bg-rose-900/20 border-b border-white/5 flex justify-between items-center">
+      <div class="glass-card overflow-hidden flex flex-col flex-1 border-rose-500/30">
+        <div class="p-4 bg-black/20 border-b border-rose-500/20 flex justify-between items-center">
             <h2 class="font-bold text-rose-400 flex items-center gap-2">
                 <i class="fa-solid fa-triangle-exclamation"></i> ระบบร้องเรียน (Compliant)
             </h2>
         </div>
         <div class="overflow-y-auto flex-1 p-2">
             <table class="w-full text-sm text-left">
-                <thead class="text-[10px] text-slate-400 uppercase tracking-widest border-b border-white/5 bg-black/20 sticky top-0 backdrop-blur-md">
-                    <tr><th class="px-4 py-2">เคสร้องเรียน</th><th class="px-4 py-2">ผู้รับผิดชอบ</th><th class="px-4 py-2">หมวด</th><th class="px-4 py-2">Deadline</th><th class="px-4 py-2 text-center">สถานะ</th></tr>
+                <thead class="text-[10px] text-slate-500 uppercase tracking-widest border-b border-white/5 bg-black/10 sticky top-0 backdrop-blur-md z-10">
+                    <tr>
+                        <th class="px-4 py-2">เคสร้องเรียน (Job Name)</th>
+                        <th class="px-4 py-2">ผู้รับผิดชอบ</th>
+                        <th class="px-4 py-2">กลุ่มงาน</th>
+                        <th class="px-4 py-2">Deadline</th>
+                        <th class="px-4 py-2 text-center">สถานะ</th>
+                    </tr>
                 </thead>
                 <tbody id="compliantTableBody" class="divide-y divide-white/5"></tbody>
             </table>
@@ -181,10 +205,11 @@
 
 <script>
 // --- 1. System Setup ---
-const DB_KEY = 'Executive_Dash_V16_Master'; 
+const DB_KEY = 'Executive_Dash_V18_Ultimate'; 
 const appState = { tasks: [], selectedDate: '', filters: { employee: 'all', jobType: 'all' }, staffMap: {} };
 
-let chartCompany = null, chartEmployee = null;
+let chartCompany = null;
+let chartEmployee = null;
 Chart.defaults.color = '#94a3b8';
 Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
 
@@ -194,6 +219,14 @@ function init() {
     const todayStr = new Date().toISOString().slice(0, 10);
     appState.selectedDate = todayStr;
     el('dateFilter').value = todayStr;
+
+    const savedLogo = localStorage.getItem('ExecDash_Logo_Client');
+    if(savedLogo) el('companyLogoImg').src = savedLogo;
+    const savedName = localStorage.getItem('ExecDash_CompanyName_Client');
+    if(savedName) {
+        el('companyNameText').innerText = savedName;
+    }
+
     loadTasks();
     updateDropdowns();
     renderUI();
@@ -210,6 +243,16 @@ function loadTasks() {
 }
 function hardReset() { if(confirm('ล้างข้อมูลทั้งหมด?')) { localStorage.removeItem(DB_KEY); location.reload(); } }
 
+el('logoUpload').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (f) {
+        const r = new FileReader();
+        r.onload = (evt) => { el('companyLogoImg').src = evt.target.result; localStorage.setItem('ExecDash_Logo_Client', evt.target.result); };
+        r.readAsDataURL(f);
+    }
+});
+el('companyNameText').addEventListener('blur', (e) => { localStorage.setItem('ExecDash_CompanyName_Client', e.target.innerText); });
+
 function showAlert(msg, color, icon='fa-info-circle') {
     const alert = el('statusAlert');
     alert.className = `mb-6 p-4 rounded-xl text-sm font-bold flex items-center gap-3 bg-${color}-500/20 text-${color}-300 border border-${color}-500/30 shadow-lg`;
@@ -218,116 +261,144 @@ function showAlert(msg, color, icon='fa-info-circle') {
     setTimeout(() => { alert.classList.add('hidden'); }, 5000);
 }
 
-// --- 2. THE ULTIMATE CLIENT PARSER ---
-function normalizeKeys(obj) {
-    const norm = {};
-    for (let key in obj) norm[key.trim()] = obj[key]; // ลบเว้นวรรคหน้าหลังในหัวตาราง
-    return norm;
-}
-
+// --- 2. THE ULTIMATE CLIENT PARSER (แก้เว้นวรรค และคำผิด 100%) ---
 function parseDateKey(k) {
     if (!k) return null;
     let strK = String(k).trim();
     if (strK.match(/^\d{4}-\d{2}-\d{2}$/)) return strK;
     const num = parseFloat(strK);
-    // Excel Serial Date (ต้องเป็นตัวเลขเพียวๆ ไม่มีขีด)
-    if (!isNaN(num) && num > 30000 && num < 70000 && !strK.includes('-')) {
+    if (!isNaN(num) && num > 30000 && num < 70000 && !strK.includes('-') && !strK.includes('/')) {
         const d = new Date(Math.round((num - 25569) * 86400 * 1000));
         return d.toISOString().slice(0, 10);
     }
     return null;
 }
 
-function parseClientExcel(workbook) {
+function processFileContent(workbook, fileName) {
     let allData = [];
-    let staffDictionary = {};
+    let staffDictionary = appState.staffMap || {};
+    let companyNameFound = "";
 
-    // 1. อ่าน Master Data สร้าง Dictionary (ST001 -> ST001 (MR A))
+    // Step 1: ค้นหา Master Data ก่อนเพื่อดึงข้อมูลพนักงานและชื่อบริษัท
     workbook.SheetNames.forEach(sheetName => {
-        if (sheetName.toLowerCase().includes('master')) {
-            const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
-            rawRows.forEach(row => {
-                const r = normalizeKeys(row);
-                const code = String(r['STAFF Code'] || '').trim();
-                const name = String(r['STAFF NM'] || '').trim();
-                if (code) {
-                    const fullName = name ? `${code} (${name})` : code;
-                    staffDictionary[code] = fullName;
-                    if(name) staffDictionary[name] = fullName; // Map เผื่อพิมพ์ชื่อมาตรงๆ
-                }
-            });
+        const sNameLower = sheetName.toLowerCase();
+        // ถ้าเป็นไฟล์ CSV ที่เซฟแยกมา ชื่อ Sheet จะเป็นชื่อไฟล์
+        if (sNameLower.includes('master') || fileName.toLowerCase().includes('master')) {
+            const rawArray = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
+            if (rawArray.length > 0) {
+                // ค้นหา Company Name แบบ Array 2D
+                rawArray.forEach((row, rIdx) => {
+                    row.forEach((cell, cIdx) => {
+                        let text = String(cell).trim().toLowerCase();
+                        if(text === 'company name') companyNameFound = String(row[cIdx+1] || '').trim();
+                        
+                        // สร้าง Dictionary ST001 -> ST001 (MR A)
+                        if (rIdx > 0 && String(row[0]).startsWith('ST')) {
+                            let code = String(row[0]).trim();
+                            let name = String(row[1] || '').trim();
+                            if(code) {
+                                let fullName = name ? `${code} (${name})` : code;
+                                staffDictionary[code] = fullName;
+                                if(name) staffDictionary[name] = fullName; 
+                            }
+                        }
+                    });
+                });
+            }
         }
     });
 
+    if (companyNameFound) {
+        el('companyNameText').innerText = companyNameFound;
+        localStorage.setItem('ExecDash_CompanyName_Client', companyNameFound);
+    }
     appState.staffMap = staffDictionary;
 
-    // 2. อ่านงานทั้งหมด 
+    // Step 2: อ่านข้อมูลงาน (Routine, Adhoc, Compliant)
     workbook.SheetNames.forEach(sheetName => {
         const sLower = sheetName.toLowerCase();
-        if (sLower.includes('master') || sLower.includes('ข้อมูล')) return;
+        const fLower = fileName.toLowerCase();
+        if (sLower.includes('master') || fLower.includes('master')) return;
 
-        // ฟิลเตอร์หมวดหมู่จากชื่อ Sheet เป็นหลัก (Group = Routine, Compliant = ร้องเรียน, นอกนั้น Adhoc)
+        // แยกหมวดหมู่จากชื่อ Sheet หรือ ชื่อไฟล์
         let finalCategory = 'Adhoc';
-        if (sLower.includes('group') || sLower.includes('routine')) finalCategory = 'Routine';
-        else if (sLower.includes('compliant') || sLower.includes('ร้องเรียน')) finalCategory = 'Compliant';
+        if (sLower.includes('group') || sLower.includes('routine') || fLower.includes('group')) finalCategory = 'Routine';
+        else if (sLower.includes('compliant') || sLower.includes('ร้องเรียน') || fLower.includes('compliant')) finalCategory = 'Compliant';
 
+        // ใช้ raw: false เพื่ออ่านวันที่มาเป็น String ตรงๆ 
         const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '', raw: false });
         if (rawRows.length === 0) return;
 
+        // เช็คว่ามีคอลัมน์ที่เป็นวันที่หรือไม่ (เพื่อระบุว่าเป็น Matrix Group A/B)
+        const keysSample = Object.keys(rawRows[0] || {});
+        const isMatrix = keysSample.some(k => parseDateKey(k));
+
         rawRows.forEach(row => {
-            const r = normalizeKeys(row); // ลบเว้นวรรคในหัวตารางแล้ว
+            const keys = Object.keys(row);
             
-            if (finalCategory === 'Routine') {
-                // โหมด Matrix: Group A/B
-                // ลูกค้าพิมพ์หัวตาราง TASK และ Onwer ผิด เราดักทางไว้หมดแล้ว
-                const taskName = r['TASK'] || r['Task'] || r['ชื่องาน'] || r['Job Name'];
-                const ownerRaw = r['Onwer'] || r['Owner'] || r['พนักงาน'];
+            // ฟังก์ชันค้นหาคำแบบเทพ ลบเว้นวรรคและไม่สนตัวพิมพ์เล็กใหญ่
+            const findKey = (searchStrings) => keys.find(k => searchStrings.some(s => String(k).toLowerCase().replace(/\s/g, '').includes(s)));
+
+            if (finalCategory === 'Routine' && isMatrix) {
+                // โหมด Matrix: ดักทาง "TASK " และ "Onwer"
+                const taskKey = findKey(['task', 'ชื่องาน', 'jobname']);
+                const ownerKey = findKey(['onwer', 'owner', 'พนักงาน']);
+                
+                if (!taskKey) return;
+                const taskName = String(row[taskKey]).trim();
                 if (!taskName) return;
 
-                const ownerFormatted = staffDictionary[ownerRaw] || ownerRaw || 'ไม่ระบุ';
+                const rawOwner = ownerKey ? String(row[ownerKey]).trim() : 'ไม่ระบุ';
+                const ownerFormatted = staffDictionary[rawOwner] || rawOwner;
+                
+                // ใช้ชื่อ Sheet หรือชื่อไฟล์เป็นชื่อกลุ่มงาน
+                const jobType = sLower.includes('sheet') ? fileName.replace('.csv','').replace('.xlsx','') : sheetName;
 
-                // หาวันที่จากหัวตาราง
-                Object.keys(r).forEach(k => {
+                keys.forEach(k => {
                     const pDate = parseDateKey(k);
                     if (pDate) {
-                        const val = String(r[k]).trim().toUpperCase();
+                        const val = String(row[k]).trim().toUpperCase();
                         if (val) {
                             let status = 'not run';
-                            if (val === 'S' || val === 'SUCCESS' || val === 'DONE') status = 'done';
+                            if (val === 'S' || val === 'SUCCESS') status = 'done';
                             else if (val === 'P' || val === 'PENDING') status = 'pending';
                             else if (val === 'N') status = 'not run';
 
                             allData.push({
                                 id: `R${Date.now()}${Math.random().toString(36).substr(2,5)}`,
-                                category: 'Routine', jobType: sheetName, taskName: taskName, ownerName: ownerFormatted, date: pDate, status: status
+                                category: 'Routine', jobType: jobType, taskName: taskName, ownerName: ownerFormatted, date: pDate, status: status
                             });
                         }
                     }
                 });
 
             } else {
-                // โหมด List: Adhoc & Compliant
-                const taskName = r['Job Name'] || r['Task Name'] || r['Task'] || r['ชื่องาน'];
-                const ownerRaw = r['Owner'] || r['Onwer'] || r['พนักงาน'];
+                // โหมด List (Adhoc & Compliant)
+                const taskKey = findKey(['jobname', 'task', 'ชื่องาน']);
+                const ownerKey = findKey(['owner', 'onwer', 'พนักงาน']);
+                const deadlineKey = findKey(['deadline', 'กำหนดส่ง']);
+                const receiveKey = findKey(['receive', 'วันที่รับ']);
+                const statusKey = findKey(['status', 'สถานะ']);
+
+                if (!taskKey) return;
+                const taskName = String(row[taskKey]).trim();
                 if (!taskName) return;
 
-                const ownerFormatted = staffDictionary[ownerRaw] || ownerRaw || 'ไม่ระบุ';
-                const subCategory = r['Category'] || r['หมวด']; // ใช้ Category ในตาราง Adhoc ย่อย
-                
-                let rawDeadline = r['Deadline Date'] || r['Deadline'] || r['กำหนดส่ง'];
-                let parsedDeadline = parseDateKey(rawDeadline) || '';
+                const rawOwner = ownerKey ? String(row[ownerKey]).trim() : 'ไม่ระบุ';
+                const ownerFormatted = staffDictionary[rawOwner] || rawOwner;
+                const jobType = sLower.includes('sheet') ? fileName.replace('.csv','').replace('.xlsx','') : sheetName;
 
-                let rawReceive = r['Receive Date'] || r['Receive'] || r['วันที่รับ'];
-                let parsedReceive = parseDateKey(rawReceive) || parsedDeadline;
+                let parsedDeadline = deadlineKey ? parseDateKey(row[deadlineKey]) : '';
+                let parsedReceive = receiveKey ? parseDateKey(row[receiveKey]) : parsedDeadline;
 
-                const statusVal = String(r['Status'] || r['สถานะ']).toUpperCase();
+                const statusVal = statusKey ? String(row[statusKey]).toUpperCase() : '';
                 let status = 'not run';
                 if (statusVal.includes('SUCCESS') || statusVal === 'S') status = 'done';
                 else if (statusVal.includes('PENDING') || statusVal === 'P' || statusVal.includes('OVERDUE')) status = 'pending';
 
                 allData.push({
                     id: `A${Date.now()}${Math.random().toString(36).substr(2,5)}`,
-                    category: finalCategory, jobType: sheetName, subCat: subCategory, taskName: taskName, ownerName: ownerFormatted, 
+                    category: finalCategory, jobType: jobType, taskName: taskName, ownerName: ownerFormatted, 
                     date: parsedDeadline, receiveDate: parsedReceive, status: status
                 });
             }
@@ -336,34 +407,47 @@ function parseClientExcel(workbook) {
     return allData;
 }
 
-el('fileUpload').addEventListener('change', (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    showAlert('กำลังอ่านไฟล์และจับคู่ข้อมูลพนักงาน...', 'sky', 'fa-spinner fa-spin');
+el('fileUpload').addEventListener('change', async (e) => {
+    const files = e.target.files;
+    if (!files.length) return;
     
-    const reader = new FileReader();
-    reader.onload = (evt) => {
-        try {
-            const wb = XLSX.read(evt.target.result, { type: 'binary' });
-            const newTasks = parseClientExcel(wb);
-            
-            if (newTasks.length === 0) {
-                showAlert('นำเข้าไม่สำเร็จ: ไม่พบข้อมูลงาน (ตรวจสอบเว้นวรรคหรือหัวตาราง)', 'rose', 'fa-triangle-exclamation');
-                return;
-            }
-            
-            appState.tasks = newTasks;
-            saveTasks(); 
-            updateDropdowns();
-            renderUI();
-            showAlert(`นำเข้าสำเร็จ! จัดกลุ่ม Group A/B, Adhoc, Compliant เรียบร้อย`, 'emerald', 'fa-check-circle');
-            e.target.value = ''; 
-        } catch (err) { 
-            console.error(err);
-            showAlert('เกิดข้อผิดพลาดในการอ่านไฟล์', 'rose', 'fa-triangle-exclamation'); 
+    showAlert('กำลังอ่านไฟล์และจัดหมวดหมู่อัตโนมัติ...', 'sky', 'fa-spinner fa-spin');
+    let newlyParsedTasks = [];
+    
+    for(let i=0; i<files.length; i++) {
+        const file = files[i];
+        const data = await file.arrayBuffer();
+        const wb = XLSX.read(data, { type: 'array' });
+        const tasks = processFileContent(wb, file.name);
+        newlyParsedTasks = [...newlyParsedTasks, ...tasks];
+    }
+    
+    if (newlyParsedTasks.length === 0) {
+        showAlert('นำเข้าไม่สำเร็จ: ไม่พบข้อมูลงาน (ตรวจสอบเว้นวรรคหรือหัวตาราง)', 'rose', 'fa-triangle-exclamation');
+        return;
+    }
+    
+    // รวมของเก่ากับของใหม่
+    appState.tasks = [...appState.tasks, ...newlyParsedTasks];
+    
+    // ลบตัวซ้ำ (กรณีอัปโหลดไฟล์เดิมซ้ำ)
+    const uniqueTasks = [];
+    const map = new Map();
+    for (const item of appState.tasks) {
+        // ใช้ Key ผสม เพื่อเช็คความซ้ำซ้อน
+        const uniqueKey = `${item.taskName}-${item.ownerName}-${item.date}-${item.jobType}`;
+        if(!map.has(uniqueKey)){
+            map.set(uniqueKey, true);
+            uniqueTasks.push(item);
         }
-    };
-    reader.readAsBinaryString(file);
+    }
+    appState.tasks = uniqueTasks;
+
+    saveTasks(); 
+    updateDropdowns();
+    renderUI();
+    showAlert(`นำเข้าสำเร็จ! อ่านข้อมูลเรียบร้อย (รองรับการแก้ไขคำผิด)`, 'emerald', 'fa-check-circle');
+    e.target.value = ''; 
 });
 
 el('dateFilter').addEventListener('change', (e) => { if (e.target.value) { appState.selectedDate = e.target.value; renderUI(); } });
@@ -415,7 +499,7 @@ function renderCharts(dayTasks) {
         type: 'doughnut',
         data: {
             labels: ['Success', 'Pending', 'Not Run'],
-            datasets: [{ data: [cDone, cPending, cNotRun], backgroundColor: ['#10b981', '#f59e0b', '#475569'], borderWidth: 0 }]
+            datasets: [{ data: [cDone, cPending, cNotRun], backgroundColor: ['#10b981', '#f59e0b', '#64748b'], borderWidth: 0 }]
         },
         options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'right', labels: { color: '#cbd5e1', font:{size:10} } } } }
     });
@@ -425,11 +509,11 @@ function renderCharts(dayTasks) {
     chartEmployee = new Chart(el('employeeChart'), {
         type: 'bar',
         data: {
-            labels: empNames.length ? empNames : ['-'],
+            labels: empNames.length ? empNames : ['ไม่มีข้อมูล'],
             datasets: [
                 { label: 'S', data: empNames.map(n => empData[n].done), backgroundColor: '#10b981', borderRadius: 2 },
                 { label: 'P', data: empNames.map(n => empData[n].pending), backgroundColor: '#f59e0b', borderRadius: 2 },
-                { label: 'N', data: empNames.map(n => empData[n].notrun), backgroundColor: '#475569', borderRadius: 2 }
+                { label: 'N', data: empNames.map(n => empData[n].notrun), backgroundColor: '#64748b', borderRadius: 2 }
             ]
         },
         options: {
@@ -449,7 +533,6 @@ function renderUI() {
     let dateFilteredTasks = appState.tasks.filter(t => {
         if(t.category === 'Routine') return t.date === targetDate;
         
-        // Adhoc & Compliant: โชว์ถ้าเริ่มงานแล้ว
         if(t.category === 'Adhoc' || t.category === 'Compliant') {
             if(!t.date && !t.receiveDate) return true;
             const start = t.receiveDate || t.date;
@@ -480,7 +563,7 @@ function renderUI() {
     const doneRoutine = finalFiltered.filter(t => t.category === 'Routine' && t.status === 'done').length;
     el('percentStat').innerText = totalRoutine ? `${Math.round((doneRoutine/totalRoutine)*100)}%` : '0%';
 
-    el('routineDateLabel').innerText = `ข้อมูล ณ วันที่: ${targetDate}`;
+    el('routineDateLabel').innerText = `วันที่: ${targetDate}`;
 
     // --- Render Routine (จัดกลุ่ม Group A / Group B) ---
     const routineTasks = finalFiltered.filter(t => t.category === 'Routine');
@@ -549,7 +632,7 @@ function renderUI() {
         <tr class="hover:bg-white/5 transition-colors border-b border-white/5">
             <td class="px-4 py-3"><div class="text-xs font-semibold ${t.status === 'done' ? 'text-slate-500 line-through' : 'text-slate-200'} truncate w-40" title="${t.taskName}">${t.taskName}</div></td>
             <td class="px-4 py-3 text-[10px] text-purple-300 font-medium truncate w-24" title="${t.ownerName}">${t.ownerName}</td>
-            <td class="px-4 py-3 text-[10px] text-slate-400 uppercase truncate w-20 text-center">${t.subCat || t.jobType}</td>
+            <td class="px-4 py-3 text-[10px] text-slate-400 uppercase truncate w-20 text-center">${t.jobType}</td>
             <td class="px-4 py-3 text-[10px] text-slate-400 font-mono text-center">${t.date || '-'}</td>
             <td class="px-4 py-3 text-center">
                 <select onchange="changeTaskStatus('${t.id}', this.value)" class="status-select bg-black/40 border ${borderClass} text-[10px] rounded py-1 pl-2 pr-5 outline-none cursor-pointer ${textClass}">
