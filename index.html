@@ -10,13 +10,13 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" />
   <style>
     body {
-      background-color: #1a1625;
-      background-image: radial-gradient(circle at top right, #2a2344 0%, #1a1625 100%);
+      background-color: #211c38;
+      background-image: linear-gradient(180deg, #211c38 0%, #151226 100%);
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       color: #e2e8f0;
     }
     .glass-card {
-      background: rgba(30, 25, 50, 0.7);
+      background: rgba(255, 255, 255, 0.03);
       border: 1px solid rgba(255, 255, 255, 0.08);
       backdrop-filter: blur(16px);
       border-radius: 1rem;
@@ -54,6 +54,7 @@
         <h1 class="text-2xl md:text-3xl font-black text-white tracking-wide flex items-center gap-3">
             Executive Monitor <span class="text-[10px] bg-purple-600 px-2 py-1 rounded-full uppercase tracking-widest text-white align-middle">Time Machine</span>
         </h1>
+        <p class="text-purple-300/80 text-xs mt-1">รองรับระบบ Group A/B, Adhoc และ Compliant โดยเฉพาะ</p>
     </div>
   </div>
   
@@ -63,7 +64,7 @@
       <input id="dateFilter" type="date" class="bg-transparent border-none text-white text-sm focus:ring-0 cursor-pointer font-bold outline-none" />
     </div>
     <label class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer shadow-lg shadow-indigo-900/40 transition-all active:scale-95 border border-indigo-400/30">
-      <i class="fa-solid fa-file-import"></i> นำเข้าไฟล์ (CSV/XLSX)
+      <i class="fa-solid fa-file-import"></i> อัปโหลดไฟล์ (CSV/XLSX)
       <input id="fileUpload" type="file" accept=".xlsx,.xls,.csv" class="hidden" />
     </label>
     <button onclick="hardReset()" class="bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white border border-rose-500/30 hover:border-rose-500 px-4 py-2.5 rounded-xl text-xs font-bold transition-all">
@@ -81,32 +82,36 @@
     <select id="employeeSelect" class="w-2/3 bg-black/20 border border-white/10 rounded-lg text-sm text-slate-200 py-1.5 px-3 outline-none focus:border-purple-500"></select>
   </div>
   <div class="glass-card p-3 px-4 flex items-center justify-between">
-    <label class="text-xs text-slate-400 uppercase font-bold w-1/3">กลุ่มงาน (Sheet):</label>
+    <label class="text-xs text-slate-400 uppercase font-bold w-1/3">กลุ่มงาน:</label>
     <select id="jobTypeSelect" class="w-2/3 bg-black/20 border border-white/10 rounded-lg text-sm text-slate-200 py-1.5 px-3 outline-none focus:border-purple-500"></select>
   </div>
 </section>
 
 <!-- Stats Grid -->
 <section class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-  <div class="glass-card p-5 border-t-2 border-emerald-500 relative overflow-hidden">
-    <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Success (S)</p>
-    <h3 id="successStat" class="text-3xl font-black text-emerald-400">0</h3>
-    <p class="text-[10px] text-slate-500 mt-1">งานที่สำเร็จในวันที่เลือก</p>
+  <div class="glass-card p-6 border-t-2 border-emerald-500 relative overflow-hidden">
+    <div class="absolute -right-2 -bottom-2 opacity-5 text-emerald-500 text-6xl"><i class="fa-solid fa-check-double"></i></div>
+    <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2">Success (S)</p>
+    <h3 id="successStat" class="text-4xl font-black text-emerald-400 relative z-10">0</h3>
+    <p class="text-[10px] text-slate-500 mt-2 relative z-10">งานที่สำเร็จในวันที่เลือก</p>
   </div>
-  <div class="glass-card p-5 border-t-2 border-amber-500 relative overflow-hidden">
-    <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Pending (P)</p>
-    <h3 id="pendingStat" class="text-3xl font-black text-amber-400">0</h3>
-    <p class="text-[10px] text-slate-500 mt-1">งานที่กำลังทำอยู่</p>
+  <div class="glass-card p-6 border-t-2 border-amber-500 relative overflow-hidden">
+    <div class="absolute -right-2 -bottom-2 opacity-5 text-amber-500 text-6xl"><i class="fa-solid fa-spinner"></i></div>
+    <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2">Pending (P)</p>
+    <h3 id="pendingStat" class="text-4xl font-black text-amber-400 relative z-10">0</h3>
+    <p class="text-[10px] text-slate-500 mt-2 relative z-10">งานที่กำลังทำในวันที่เลือก</p>
   </div>
-  <div class="glass-card p-5 border-t-2 border-slate-500 relative overflow-hidden">
-    <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Not Run (N)</p>
-    <h3 id="notrunStat" class="text-3xl font-black text-slate-400">0</h3>
-    <p class="text-[10px] text-slate-500 mt-1">งานที่ยังไม่เริ่ม</p>
+  <div class="glass-card p-6 border-t-2 border-slate-500 relative overflow-hidden">
+    <div class="absolute -right-2 -bottom-2 opacity-5 text-slate-500 text-6xl"><i class="fa-solid fa-minus"></i></div>
+    <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2">Not Run (N)</p>
+    <h3 id="notrunStat" class="text-4xl font-black text-slate-400 relative z-10">0</h3>
+    <p class="text-[10px] text-slate-500 mt-2 relative z-10">งานที่ยังไม่เริ่มในวันที่เลือก</p>
   </div>
-  <div class="glass-card p-5 border-t-2 border-indigo-500 relative overflow-hidden">
-    <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-1">Routine Overall</p>
-    <h3 id="percentStat" class="text-3xl font-black text-indigo-400">0%</h3>
-    <p class="text-[10px] text-slate-500 mt-1">ความสำเร็จของงานประจำ</p>
+  <div class="glass-card p-6 border-t-2 border-indigo-500 relative overflow-hidden">
+    <div class="absolute -right-2 -bottom-2 opacity-5 text-indigo-500 text-6xl"><i class="fa-solid fa-chart-pie"></i></div>
+    <p class="text-xs text-slate-400 uppercase font-bold tracking-wider mb-2">Routine Progress</p>
+    <h3 id="percentStat" class="text-4xl font-black text-indigo-400 relative z-10">0%</h3>
+    <p class="text-[10px] text-slate-500 mt-2 relative z-10">สัดส่วนความสำเร็จ (Group A/B)</p>
   </div>
 </section>
 
@@ -132,15 +137,20 @@
 
 <div class="grid grid-cols-1 xl:grid-cols-12 gap-6">
   
-  <!-- Routine Tasks -->
+  <!-- Routine Tasks (Group A, B) -->
   <div class="xl:col-span-5 glass-card overflow-hidden flex flex-col h-[750px]">
     <div class="p-4 bg-black/20 border-b border-white/5 flex justify-between items-center">
         <h2 class="font-bold text-emerald-400 flex items-center gap-2">
-            <i class="fa-solid fa-calendar-check"></i> งานประจำ (Routine / Group A,B)
+            <i class="fa-solid fa-calendar-check"></i> งานประจำ (Routine Matrix)
         </h2>
         <span class="text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-1 rounded font-bold" id="routineDateLabel"></span>
     </div>
-    <div id="routineContainer" class="p-4 space-y-4 overflow-y-auto flex-1">
+    <div class="p-2 border-b border-white/5 bg-white/5 flex text-[10px] uppercase font-bold text-slate-500 tracking-widest text-center">
+        <div class="w-1/2 text-left pl-2">ชื่องาน (Task)</div>
+        <div class="w-1/4">พนักงาน</div>
+        <div class="w-1/4 pr-2">สถานะ</div>
+    </div>
+    <div id="routineContainer" class="p-3 space-y-4 overflow-y-auto flex-1">
         <!-- Injected via JS -->
     </div>
   </div>
@@ -149,10 +159,10 @@
   <div class="xl:col-span-7 flex flex-col gap-6 h-[750px]">
       
       <!-- Adhoc Table -->
-      <div class="glass-card overflow-hidden flex flex-col flex-1">
-        <div class="p-4 bg-black/20 border-b border-white/5 flex justify-between items-center">
+      <div class="glass-card overflow-hidden flex flex-col flex-1 border-sky-500/30">
+        <div class="p-4 bg-black/20 border-b border-sky-500/20 flex justify-between items-center">
             <h2 class="font-bold text-sky-400 flex items-center gap-2">
-                <i class="fa-solid fa-list-check"></i> งานเฉพาะกิจ (Adhoc)
+                <i class="fa-solid fa-list-check"></i> งานเฉพาะกิจ (Adhoc & Projects)
             </h2>
         </div>
         <div class="overflow-y-auto flex-1 p-2">
@@ -161,6 +171,7 @@
                     <tr>
                         <th class="px-4 py-2">ชื่องาน (Job Name)</th>
                         <th class="px-4 py-2">ผู้รับผิดชอบ</th>
+                        <th class="px-4 py-2">กลุ่มงาน</th>
                         <th class="px-4 py-2">Deadline</th>
                         <th class="px-4 py-2 text-center">สถานะ</th>
                     </tr>
@@ -171,10 +182,10 @@
       </div>
 
       <!-- Compliant Table -->
-      <div class="glass-card overflow-hidden flex flex-col flex-1">
-        <div class="p-4 bg-black/20 border-b border-white/5 flex justify-between items-center">
+      <div class="glass-card overflow-hidden flex flex-col flex-1 border-rose-500/30">
+        <div class="p-4 bg-black/20 border-b border-rose-500/20 flex justify-between items-center">
             <h2 class="font-bold text-rose-400 flex items-center gap-2">
-                <i class="fa-solid fa-triangle-exclamation"></i> ร้องเรียน (Compliant)
+                <i class="fa-solid fa-triangle-exclamation"></i> ระบบร้องเรียน (Compliant)
             </h2>
         </div>
         <div class="overflow-y-auto flex-1 p-2">
@@ -183,6 +194,7 @@
                     <tr>
                         <th class="px-4 py-2">เคสร้องเรียน (Job Name)</th>
                         <th class="px-4 py-2">ผู้รับผิดชอบ</th>
+                        <th class="px-4 py-2">กลุ่มงาน</th>
                         <th class="px-4 py-2">Deadline</th>
                         <th class="px-4 py-2 text-center">สถานะ</th>
                     </tr>
@@ -197,7 +209,7 @@
 
 <script>
 // --- 1. System Setup ---
-const DB_KEY = 'Executive_Dash_V12_Full_Client'; 
+const DB_KEY = 'Executive_Dash_V15_Client_Master'; 
 const appState = { tasks: [], selectedDate: '', filters: { employee: 'all', jobType: 'all' }, staffMap: {} };
 
 let chartCompany = null;
@@ -251,13 +263,15 @@ function showAlert(msg, color, icon='fa-info-circle') {
     setTimeout(() => { alert.classList.add('hidden'); }, 5000);
 }
 
-// --- 2. Advanced Custom Parser สำหรับลูกค้า ---
+// --- 2. Advanced Custom Parser สำหรับลูกค้า (รื้อใหม่ 100%) ---
 function parseDateKey(k) {
     if (!k) return null;
     let strK = String(k).trim();
+    // รองรับ 2026-04-01
     if (strK.match(/^\d{4}-\d{2}-\d{2}$/)) return strK;
+    // รองรับ Excel Serial Number
     const num = parseFloat(strK);
-    if (!isNaN(num) && num > 30000 && num < 70000) {
+    if (!isNaN(num) && num > 30000 && num < 70000 && !strK.includes('-') && !strK.includes('/')) {
         const d = new Date(Math.round((num - 25569) * 86400 * 1000));
         return d.toISOString().slice(0, 10);
     }
@@ -269,17 +283,15 @@ function parseClientExcel(workbook) {
     let staffDictionary = {};
     let companyNameFound = "";
 
-    // 1. อ่าน Master Data
+    // 1. อ่าน Master Data ก่อน
     workbook.SheetNames.forEach(sheetName => {
         if (sheetName.toLowerCase().includes('master')) {
             const rawArray = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
             if (rawArray.length > 0) {
-                // หาชื่อบริษัท
                 const headerRow = rawArray[0];
                 const cIdx = headerRow.findIndex(cell => String(cell).toLowerCase().includes('company name'));
                 if (cIdx !== -1 && headerRow[cIdx + 1]) companyNameFound = String(headerRow[cIdx + 1]).trim();
 
-                // สร้าง Staff Map (STAFF Code + STAFF NM)
                 for(let i=1; i<rawArray.length; i++) {
                     const row = rawArray[i];
                     if (row[0]) {
@@ -299,32 +311,40 @@ function parseClientExcel(workbook) {
     }
     appState.staffMap = staffDictionary;
 
-    // 2. อ่านงานทั้งหมด (Routine, Adhoc, Compliant)
+    // 2. อ่านงานทั้งหมด
     workbook.SheetNames.forEach(sheetName => {
         const sLower = sheetName.toLowerCase();
         if (sLower.includes('master')) return;
 
-        // กำหนด Category หลักจากชื่อ Sheet
+        // จำแนกหมวดหมู่จากชื่อ Sheet เป็นหลัก (Group = Routine)
         let finalCategory = 'Adhoc';
-        if (sLower.includes('routine') || sLower.includes('group')) finalCategory = 'Routine';
+        if (sLower.includes('group') || sLower.includes('routine')) finalCategory = 'Routine';
         else if (sLower.includes('compliant') || sLower.includes('ร้องเรียน')) finalCategory = 'Compliant';
 
-        const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '' });
+        // ใช้ raw: false เพื่อให้อ่านวันที่แบบ 2026-04-01 มาเป็น string ตรงๆ
+        const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '', raw: false });
         if (rawRows.length === 0) return;
 
-        // ตรวจสอบว่าเป็น Matrix Data (มีวันที่เป็นหัวตาราง) หรือไม่
-        const isMatrix = Object.keys(rawRows[0]).some(k => parseDateKey(k));
+        // เช็คว่ามีคอลัมน์ที่เป็นวันที่หรือไม่ (เพื่อระบุว่าเป็น Matrix)
+        const keysSample = Object.keys(rawRows[0] || {});
+        const isMatrix = keysSample.some(k => parseDateKey(k));
 
-        if (isMatrix && finalCategory === 'Routine') {
+        if (finalCategory === 'Routine' && isMatrix) {
+            // ระบบอ่าน Group A/B Matrix
             rawRows.forEach(row => {
-                // ลูกค้าชอบพิมพ์ผิด: "TASK ", "Onwer"
-                const taskName = row['TASK '] || row['TASK'] || row['Task'] || row['ชื่องาน'];
-                const rawOwner = row['Onwer'] || row['Owner'] || row['พนักงาน'];
+                const keys = Object.keys(row);
+                // ค้นหาคอลัมน์ Task และ Owner โดยใช้คำครอบคลุมการพิมพ์ผิดของลูกค้า
+                const taskKey = keys.find(k => k.toLowerCase().replace(/\s/g,'').includes('task') || k.includes('งาน'));
+                const ownerKey = keys.find(k => k.toLowerCase().replace(/\s/g,'').includes('onwer') || k.toLowerCase().includes('owner'));
+                
+                if (!taskKey) return;
+                const taskName = String(row[taskKey]).trim();
                 if (!taskName) return;
 
-                const ownerFormatted = staffDictionary[rawOwner] || rawOwner || 'ไม่ระบุ';
+                const rawOwner = ownerKey ? String(row[ownerKey]).trim() : 'ไม่ระบุ';
+                const ownerFormatted = staffDictionary[rawOwner] || rawOwner;
 
-                Object.keys(row).forEach(k => {
+                keys.forEach(k => {
                     const pDate = parseDateKey(k);
                     if (pDate) {
                         const val = String(row[k]).trim().toUpperCase();
@@ -332,6 +352,7 @@ function parseClientExcel(workbook) {
                             let status = 'not run';
                             if (val === 'S' || val === 'SUCCESS') status = 'done';
                             else if (val === 'P' || val === 'PENDING') status = 'pending';
+                            else if (val === 'N') status = 'not run';
 
                             allData.push({
                                 id: `T${Date.now()}${Math.random().toString(36).substr(2,5)}`,
@@ -342,23 +363,31 @@ function parseClientExcel(workbook) {
                 });
             });
         } else {
-            // โหมดอ่าน List ปกติ (Adhoc, Compliant)
+            // ระบบอ่าน Adhoc / Compliant (List Form)
             rawRows.forEach(row => {
-                const taskName = row['Job Name'] || row['Task Name'] || row['Task'] || row['ชื่องาน'];
-                const rawOwner = row['Owner'] || row['Onwer'];
-                let rawDeadline = row['Deadline Date'] || row['Deadline'] || row['กำหนดส่ง'];
-                let rawReceive = row['Receive Date'] || row['วันที่รับ'];
-                const statusVal = String(row['Status'] || row['สถานะ']).toUpperCase();
+                const keys = Object.keys(row);
+                const taskKey = keys.find(k => k.toLowerCase().includes('job name') || k.toLowerCase().includes('task') || k.includes('งาน'));
+                const ownerKey = keys.find(k => k.toLowerCase().includes('owner') || k.toLowerCase().includes('onwer'));
+                const deadlineKey = keys.find(k => k.toLowerCase().includes('deadline') || k.includes('กำหนด'));
+                const receiveKey = keys.find(k => k.toLowerCase().includes('receive') || k.includes('รับ'));
+                const statusKey = keys.find(k => k.toLowerCase().includes('status') || k.includes('สถานะ'));
 
+                if (!taskKey) return;
+                const taskName = String(row[taskKey]).trim();
                 if (!taskName) return;
 
-                const ownerFormatted = staffDictionary[rawOwner] || rawOwner || 'ไม่ระบุ';
+                const rawOwner = ownerKey ? String(row[ownerKey]).trim() : 'ไม่ระบุ';
+                const ownerFormatted = staffDictionary[rawOwner] || rawOwner;
                 
+                const rawDeadline = deadlineKey ? row[deadlineKey] : '';
+                const rawReceive = receiveKey ? row[receiveKey] : '';
+                const statusVal = statusKey ? String(row[statusKey]).toUpperCase() : '';
+
                 let parsedDeadline = parseDateKey(rawDeadline) || '';
                 let parsedReceive = parseDateKey(rawReceive) || parsedDeadline;
 
                 let status = 'not run';
-                if (statusVal.includes('SUCCESS') || statusVal === 'S' || statusVal.includes('DONE')) status = 'done';
+                if (statusVal.includes('SUCCESS') || statusVal === 'S') status = 'done';
                 else if (statusVal.includes('PENDING') || statusVal === 'P' || statusVal.includes('OVERDUE')) status = 'pending';
 
                 allData.push({
@@ -392,7 +421,7 @@ el('fileUpload').addEventListener('change', (e) => {
             saveTasks(); 
             updateDropdowns();
             renderUI();
-            showAlert(`โหลดข้อมูลสำเร็จ! เข้าสู่ระบบ (ประวัติงานทั้งหมด)`, 'emerald', 'fa-check-circle');
+            showAlert(`โหลดข้อมูลสำเร็จ! เข้าสู่ระบบ Time Machine (ประวัติงานทั้งหมด)`, 'emerald', 'fa-check-circle');
             e.target.value = ''; 
         } catch (err) { 
             console.error(err);
@@ -420,13 +449,13 @@ window.changeTaskStatus = function(taskId, newStatus) {
 
 window.toggleAccordion = function(headerElement) {
     const content = headerElement.nextElementSibling;
-    const icon = headerElement.querySelector('.chevron-icon');
-    if (content.style.maxHeight) {
-        content.style.maxHeight = null;
-        icon.style.transform = "rotate(0deg)";
-    } else {
-        content.style.maxHeight = content.scrollHeight + "px";
+    const icon = headerElement.querySelector('.fa-chevron-down');
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
         icon.style.transform = "rotate(180deg)";
+    } else {
+        content.classList.add('hidden');
+        icon.style.transform = "rotate(0deg)";
     }
 }
 
@@ -453,7 +482,7 @@ function renderCharts(dayTasks) {
             labels: ['Success (S)', 'Pending (P)', 'Not Run (N)'],
             datasets: [{ data: [cDone, cPending, cNotRun], backgroundColor: ['#10b981', '#f59e0b', '#64748b'], borderWidth: 0 }]
         },
-        options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'right', labels: { color: '#cbd5e1' } } } }
+        options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'right', labels: { color: '#cbd5e1', font:{size:10} } } } }
     });
 
     const empNames = Object.keys(empData);
@@ -461,7 +490,7 @@ function renderCharts(dayTasks) {
     chartEmployee = new Chart(el('employeeChart'), {
         type: 'bar',
         data: {
-            labels: empNames.length ? empNames : ['ไม่มีข้อมูลพนักงาน'],
+            labels: empNames.length ? empNames : ['ไม่มีข้อมูล'],
             datasets: [
                 { label: 'Success (S)', data: empNames.map(n => empData[n].done), backgroundColor: '#10b981', borderRadius: 4 },
                 { label: 'Pending (P)', data: empNames.map(n => empData[n].pending), backgroundColor: '#f59e0b', borderRadius: 4 },
@@ -470,25 +499,26 @@ function renderCharts(dayTasks) {
         },
         options: {
             responsive: true, maintainAspectRatio: false,
-            scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } } },
-            plugins: { legend: { position: 'top', align: 'end' } }
+            scales: { x: { stacked: true, grid: { display: false }, ticks:{font:{size:9}} }, y: { stacked: true, beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } } },
+            plugins: { legend: { position: 'top', align: 'end', labels:{boxWidth:10, font:{size:10}} } }
         }
     });
 }
 
-// --- 4. Render Main UI (Time Machine Logic) ---
+// --- 4. Render Main UI ---
 function renderUI() {
     const { employee, jobType } = appState.filters;
     const targetDate = appState.selectedDate; 
 
-    // Time Machine Filter (ดึงข้อมูลให้ตรงกับวันที่เลือกเป๊ะๆ)
+    // Time Machine Filter 
     let dateFilteredTasks = appState.tasks.filter(t => {
         if(t.category === 'Routine') return t.date === targetDate;
         
-        // Adhoc & Compliant: โชว์ถ้ารับงานมาแล้ว และ (ยังไม่เสร็จ หรือ เพิ่งเสร็จวันนี้)
+        // Adhoc & Compliant logic
         if(t.category === 'Adhoc' || t.category === 'Compliant') {
             if(!t.date && !t.receiveDate) return true;
             const start = t.receiveDate || t.date;
+            // โชว์ถ้าเริ่มงานแล้ว และ (ยังไม่เสร็จ หรือ เพิ่งเสร็จวันนี้)
             return start <= targetDate && (t.status !== 'done' || t.date >= targetDate);
         }
         return true;
@@ -523,7 +553,7 @@ function renderUI() {
     const rCont = el('routineContainer');
     
     if(routineTasks.length === 0) {
-        rCont.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-500 opacity-60 py-20"><i class="fa-regular fa-folder-open text-4xl mb-3"></i><p class="text-sm font-bold uppercase">ไม่มีงาน Routine สำหรับวันนี้</p></div>`;
+        rCont.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-500 opacity-60 py-20"><i class="fa-regular fa-folder-open text-4xl mb-3"></i><p class="text-sm font-bold uppercase">ไม่มีข้อมูลสำหรับวันนี้</p></div>`;
     } else {
         const groupedRoutine = {};
         routineTasks.forEach(t => { if(!groupedRoutine[t.jobType]) groupedRoutine[t.jobType] = []; groupedRoutine[t.jobType].push(t); });
@@ -534,28 +564,28 @@ function renderUI() {
             const progressPct = Math.round((doneInJob / tasksInJob.length) * 100);
             
             return `
-            <div class="bg-black/20 rounded-xl border border-white/10 overflow-hidden mb-3">
+            <div class="bg-black/20 rounded-xl border border-white/10 overflow-hidden">
                 <div class="p-3 bg-purple-900/30 cursor-pointer flex items-center justify-between hover:bg-purple-900/50 transition-colors" onclick="toggleAccordion(this)">
                     <div class="flex-1">
-                        <h3 class="text-sm font-bold text-purple-300 flex items-center gap-2"><i class="fa-solid fa-users-gear"></i> ${jobName}</h3>
+                        <h3 class="text-sm font-bold text-emerald-400 flex items-center gap-2"><i class="fa-solid fa-users-gear"></i> ${jobName}</h3>
                         <div class="w-full bg-black/50 h-1.5 rounded-full mt-2 overflow-hidden">
                             <div class="h-full bg-emerald-500 transition-all" style="width: ${progressPct}%"></div>
                         </div>
                     </div>
                     <div class="flex items-center gap-3 ml-4">
                         <span class="text-xs text-slate-400 font-mono">${doneInJob}/${tasksInJob.length} (${progressPct}%)</span>
-                        <i class="fa-solid fa-chevron-down text-slate-400 chevron-icon transition-transform duration-300"></i>
+                        <i class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-300 transform rotate-180"></i>
                     </div>
                 </div>
-                <div class="max-h-0 overflow-hidden transition-all duration-300 ease-in-out bg-black/10">
+                <div class="transition-all duration-300 ease-in-out bg-black/10">
                     <div class="p-2 space-y-1">
                         ${tasksInJob.map(t => `
-                            <div class="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-colors group">
+                            <div class="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/5">
                                 <div class="w-1/2 pr-2">
-                                    <p class="text-xs font-semibold ${t.status === 'done' ? 'line-through text-slate-500' : 'text-slate-200'} truncate">${t.taskName}</p>
+                                    <p class="text-xs font-semibold ${t.status === 'done' ? 'line-through text-slate-500' : 'text-slate-200'} truncate" title="${t.taskName}">${t.taskName}</p>
                                 </div>
                                 <div class="w-1/4 px-2">
-                                    <span class="text-[10px] text-slate-400 bg-black/40 px-2 py-0.5 rounded truncate block text-center border border-white/5">${t.ownerName}</span>
+                                    <span class="text-[10px] text-slate-400 bg-black/40 px-2 py-0.5 rounded truncate block text-center border border-white/5" title="${t.ownerName}">${t.ownerName}</span>
                                 </div>
                                 <div class="w-1/4 pl-2 flex justify-end">
                                     <select onchange="changeTaskStatus('${t.id}', this.value)" class="status-select bg-black/60 border border-white/10 text-[10px] rounded py-1 pl-2 pr-5 outline-none cursor-pointer ${t.status === 'done' ? 'text-emerald-400 font-bold border-emerald-500/50' : (t.status === 'pending' ? 'text-amber-400 font-bold border-amber-500/50' : 'text-slate-400')}">
@@ -572,16 +602,17 @@ function renderUI() {
         }).join('');
     }
 
-    // --- Helper function for Tables ---
+    // --- Helper function for Adhoc & Compliant Tables ---
     const renderTableRows = (tasks, emptyMsg) => tasks.length ? tasks.map(t => {
         let textClass = 'text-slate-400', borderClass = 'border-white/10';
         if(t.status === 'done') { textClass = 'text-emerald-400 font-bold'; borderClass = 'border-emerald-500/50'; }
         else if(t.status === 'pending') { textClass = 'text-amber-400 font-bold'; borderClass = 'border-amber-500/50'; }
 
         return `
-        <tr class="hover:bg-white/5 transition-colors">
-            <td class="px-4 py-3"><div class="text-xs font-semibold ${t.status === 'done' ? 'text-slate-500 line-through' : 'text-slate-200'} truncate w-40">${t.taskName}</div></td>
-            <td class="px-4 py-3 text-[10px] text-purple-300 font-medium truncate w-24">${t.ownerName}</td>
+        <tr class="hover:bg-white/5 transition-colors border-b border-white/5">
+            <td class="px-4 py-3"><div class="text-xs font-semibold ${t.status === 'done' ? 'text-slate-500 line-through' : 'text-slate-200'} truncate w-40" title="${t.taskName}">${t.taskName}</div></td>
+            <td class="px-4 py-3 text-[10px] text-purple-300 font-medium truncate w-24" title="${t.ownerName}">${t.ownerName}</td>
+            <td class="px-4 py-3 text-[10px] text-slate-400 uppercase truncate w-24" title="${t.jobType}">${t.jobType}</td>
             <td class="px-4 py-3 text-[10px] text-slate-400 font-mono">${t.date || '-'}</td>
             <td class="px-4 py-3 text-center">
                 <select onchange="changeTaskStatus('${t.id}', this.value)" class="status-select bg-black/40 border ${borderClass} text-[10px] rounded py-1 pl-2 pr-5 outline-none cursor-pointer ${textClass}">
@@ -591,12 +622,9 @@ function renderUI() {
                 </select>
             </td>
         </tr>
-    `}).join('') : `<tr><td colspan="4" class="py-10 text-center text-slate-500 opacity-60"><p class="text-xs font-bold uppercase">${emptyMsg}</p></td></tr>`;
+    `}).join('') : `<tr><td colspan="5" class="py-10 text-center text-slate-500 opacity-60"><p class="text-xs font-bold uppercase">${emptyMsg}</p></td></tr>`;
 
-    // --- Render Adhoc ---
-    el('adhocTableBody').innerHTML = renderTableRows(finalFiltered.filter(t => t.category === 'Adhoc'), 'ไม่มีงาน Adhoc/Project');
-    
-    // --- Render Compliant ---
+    el('adhocTableBody').innerHTML = renderTableRows(finalFiltered.filter(t => t.category === 'Adhoc'), 'ไม่มีงาน Adhoc');
     el('compliantTableBody').innerHTML = renderTableRows(finalFiltered.filter(t => t.category === 'Compliant'), 'ไม่มีเคสร้องเรียน');
 }
 
