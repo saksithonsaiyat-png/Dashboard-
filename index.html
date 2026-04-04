@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Executive Task Dashboard - Enterprise Level</title>
+  <title>Executive Task Dashboard - Real-time Edition</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -52,9 +52,9 @@
             YOUR COMPANY NAME
         </h2>
         <h1 class="text-2xl md:text-3xl font-black text-white tracking-wide flex items-center gap-3">
-            Executive Monitor <span class="text-[10px] bg-purple-600 px-2 py-1 rounded-full uppercase tracking-widest text-white align-middle">Time Machine</span>
+            Executive Monitor <span class="text-[10px] bg-emerald-600 px-2 py-1 rounded-full uppercase tracking-widest text-white align-middle animate-pulse"><i class="fa-solid fa-wifi mr-1"></i> Real-time</span>
         </h1>
-        <p class="text-purple-300/80 text-xs mt-1">อัปเดตข้อมูลอัตโนมัติจากไฟล์ Group A/B, Adhoc, Compliant</p>
+        <p class="text-purple-300/80 text-xs mt-1">อัปเดตข้อมูลอัตโนมัติซิงค์ตรงกับคลาวด์ตลอดเวลา</p>
     </div>
   </div>
   
@@ -64,11 +64,11 @@
       <input id="dateFilter" type="date" class="bg-transparent border-none text-white text-sm focus:ring-0 cursor-pointer font-bold outline-none" />
     </div>
     <label class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer shadow-lg shadow-indigo-900/40 transition-all active:scale-95 border border-indigo-400/30">
-      <i class="fa-solid fa-file-excel"></i> นำเข้าไฟล์ลูกค้า (CSV/XLSX)
+      <i class="fa-solid fa-cloud-arrow-up"></i> อัปโหลดงาน (Excel/CSV)
       <input id="fileUpload" type="file" accept=".xlsx,.xls,.csv" class="hidden" multiple />
     </label>
     <button onclick="hardReset()" class="bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white border border-rose-500/30 hover:border-rose-500 px-4 py-2.5 rounded-xl text-xs font-bold transition-all">
-      <i class="fa-solid fa-trash-can"></i> ล้าง
+      <i class="fa-solid fa-trash-can"></i> ล้างข้อมูล
     </button>
   </div>
 </header>
@@ -203,8 +203,28 @@
   </div>
 </div>
 
-<script>
-// --- 1. System Setup ---
+<!-- สคริปต์รวบยอด (ระบบหลัก + Firebase) -->
+<script type="module">
+// --- 1. นำเข้า Firebase SDK สำหรับเบราว์เซอร์ ---
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+// --- 2. การตั้งค่า Firebase ของคุณ (ถูกต้องแล้ว) ---
+const firebaseConfig = {
+  apiKey: "AIzaSyBCe24a2jf09xA0B9P9Z7tEL6m2WhhNP3g",
+  authDomain: "dashboard-project-1e251.firebaseapp.com",
+  projectId: "dashboard-project-1e251",
+  storageBucket: "dashboard-project-1e251.firebasestorage.app",
+  messagingSenderId: "667197621003",
+  appId: "1:667197621003:web:7406b7b80913574fe9180e",
+  measurementId: "G-Q3RK3JHE6L"
+};
+
+// เริ่มต้นใช้งาน Firebase
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+// --- 3. ระบบหลัก (ตัวแปรและตั้งค่า) ---
 const DB_KEY = 'Executive_Dash_V18_Ultimate'; 
 const appState = { tasks: [], selectedDate: '', filters: { employee: 'all', jobType: 'all' }, staffMap: {} };
 
@@ -215,6 +235,7 @@ Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
 
 const el = id => document.getElementById(id);
 
+// --- 4. ฟังก์ชันหลัก ---
 function init() {
     const todayStr = new Date().toISOString().slice(0, 10);
     appState.selectedDate = todayStr;
@@ -223,17 +244,36 @@ function init() {
     const savedLogo = localStorage.getItem('ExecDash_Logo_Client');
     if(savedLogo) el('companyLogoImg').src = savedLogo;
     const savedName = localStorage.getItem('ExecDash_CompanyName_Client');
-    if(savedName) {
-        el('companyNameText').innerText = savedName;
-    }
+    if(savedName) el('companyNameText').innerText = savedName;
 
-    loadTasks();
+    // โหลดข้อมูลเก่าจากเครื่องก่อน
+    loadTasksLocal();
     updateDropdowns();
     renderUI();
+
+    // 🔴 [สำคัญ] เริ่มดักฟังข้อมูลจากคลาวด์แบบ Real-time 🔴
+    onSnapshot(doc(db, "dashboard", "mainData"), (docSnap) => {
+        if (docSnap.exists()) {
+            const remoteData = docSnap.data();
+            appState.tasks = remoteData.tasks || [];
+            appState.staffMap = remoteData.staffMap || {};
+            
+            // อัปเดตหน้าจอทันทีเมื่อข้อมูลจากคลาวด์เปลี่ยน
+            updateDropdowns();
+            renderUI();
+            
+            console.log("🔥 อัปเดตข้อมูล Real-time สำเร็จ!");
+        } else {
+            // ถ้าคลาวด์ว่างเปล่า (ล้างข้อมูล) แต่ในเครื่องมีข้อมูล ให้โยนขึ้นไป
+            if(appState.tasks.length > 0) saveTasksToCloud();
+        }
+    }, (error) => {
+        console.error("Firebase Sync Error: ", error);
+        showAlert('มีปัญหาการเชื่อมต่อ Real-time', 'rose', 'fa-wifi');
+    });
 }
 
-function saveTasks() { localStorage.setItem(DB_KEY, JSON.stringify({ tasks: appState.tasks, staffMap: appState.staffMap })); }
-function loadTasks() {
+function loadTasksLocal() {
     const stored = localStorage.getItem(DB_KEY);
     if (stored) {
         const parsed = JSON.parse(stored);
@@ -241,8 +281,57 @@ function loadTasks() {
         appState.staffMap = parsed.staffMap || {};
     }
 }
-function hardReset() { if(confirm('ล้างข้อมูลทั้งหมด?')) { localStorage.removeItem(DB_KEY); location.reload(); } }
 
+// 🔴 [สำคัญ] ฟังก์ชันส่งข้อมูลขึ้นคลาวด์เมื่อมีการอัปเดต 🔴
+function saveTasksToCloud() {
+    // 1. เซฟลงเครื่อง
+    localStorage.setItem(DB_KEY, JSON.stringify({ tasks: appState.tasks, staffMap: appState.staffMap }));
+    
+    // 2. เซฟขึ้น Firebase
+    const dataToSync = {
+        tasks: appState.tasks,
+        staffMap: appState.staffMap,
+        lastUpdated: new Date().getTime()
+    };
+    setDoc(doc(db, "dashboard", "mainData"), dataToSync)
+        .catch(err => {
+            console.error("Firebase Save Error:", err);
+            showAlert('ไม่สามารถบันทึกขึ้นคลาวด์ได้', 'rose', 'fa-triangle-exclamation');
+        });
+}
+
+// ผูกฟังก์ชันเข้ากับ window object เพื่อให้ปุ่มใน HTML เรียกใช้งานได้ (เพราะใช้ type="module")
+window.hardReset = function() { 
+    if(confirm('ล้างข้อมูลทั้งหมด ทั้งบนเครื่องและบนระบบคลาวด์?')) { 
+        localStorage.removeItem(DB_KEY); 
+        // ล้างบนคลาวด์ด้วย
+        setDoc(doc(db, "dashboard", "mainData"), { tasks: [], staffMap: {}, lastUpdated: new Date().getTime() });
+        location.reload(); 
+    } 
+};
+
+window.changeTaskStatus = function(taskId, newStatus) {
+    const task = appState.tasks.find(t => t.id === taskId);
+    if (task) { 
+        task.status = newStatus; 
+        saveTasksToCloud(); // เซฟและยิงขึ้นคลาวด์เลย
+        renderUI(); 
+    }
+};
+
+window.toggleAccordion = function(headerElement) {
+    const content = headerElement.nextElementSibling;
+    const icon = headerElement.querySelector('.fa-chevron-down');
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        icon.style.transform = "rotate(180deg)";
+    } else {
+        content.classList.add('hidden');
+        icon.style.transform = "rotate(0deg)";
+    }
+};
+
+// (ฟังก์ชัน UI อื่นๆ โครงสร้างเดิม)
 el('logoUpload').addEventListener('change', (e) => {
     const f = e.target.files[0];
     if (f) {
@@ -261,7 +350,6 @@ function showAlert(msg, color, icon='fa-info-circle') {
     setTimeout(() => { alert.classList.add('hidden'); }, 5000);
 }
 
-// --- 2. THE ULTIMATE CLIENT PARSER (แก้เว้นวรรค และคำผิด 100%) ---
 function parseDateKey(k) {
     if (!k) return null;
     let strK = String(k).trim();
@@ -279,20 +367,15 @@ function processFileContent(workbook, fileName) {
     let staffDictionary = appState.staffMap || {};
     let companyNameFound = "";
 
-    // Step 1: ค้นหา Master Data ก่อนเพื่อดึงข้อมูลพนักงานและชื่อบริษัท
     workbook.SheetNames.forEach(sheetName => {
         const sNameLower = sheetName.toLowerCase();
-        // ถ้าเป็นไฟล์ CSV ที่เซฟแยกมา ชื่อ Sheet จะเป็นชื่อไฟล์
         if (sNameLower.includes('master') || fileName.toLowerCase().includes('master')) {
             const rawArray = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
             if (rawArray.length > 0) {
-                // ค้นหา Company Name แบบ Array 2D
                 rawArray.forEach((row, rIdx) => {
                     row.forEach((cell, cIdx) => {
                         let text = String(cell).trim().toLowerCase();
                         if(text === 'company name') companyNameFound = String(row[cIdx+1] || '').trim();
-                        
-                        // สร้าง Dictionary ST001 -> ST001 (MR A)
                         if (rIdx > 0 && String(row[0]).startsWith('ST')) {
                             let code = String(row[0]).trim();
                             let name = String(row[1] || '').trim();
@@ -314,33 +397,26 @@ function processFileContent(workbook, fileName) {
     }
     appState.staffMap = staffDictionary;
 
-    // Step 2: อ่านข้อมูลงาน (Routine, Adhoc, Compliant)
     workbook.SheetNames.forEach(sheetName => {
         const sLower = sheetName.toLowerCase();
         const fLower = fileName.toLowerCase();
         if (sLower.includes('master') || fLower.includes('master')) return;
 
-        // แยกหมวดหมู่จากชื่อ Sheet หรือ ชื่อไฟล์
         let finalCategory = 'Adhoc';
         if (sLower.includes('group') || sLower.includes('routine') || fLower.includes('group')) finalCategory = 'Routine';
         else if (sLower.includes('compliant') || sLower.includes('ร้องเรียน') || fLower.includes('compliant')) finalCategory = 'Compliant';
 
-        // ใช้ raw: false เพื่ออ่านวันที่มาเป็น String ตรงๆ 
         const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '', raw: false });
         if (rawRows.length === 0) return;
 
-        // เช็คว่ามีคอลัมน์ที่เป็นวันที่หรือไม่ (เพื่อระบุว่าเป็น Matrix Group A/B)
         const keysSample = Object.keys(rawRows[0] || {});
         const isMatrix = keysSample.some(k => parseDateKey(k));
 
         rawRows.forEach(row => {
             const keys = Object.keys(row);
-            
-            // ฟังก์ชันค้นหาคำแบบเทพ ลบเว้นวรรคและไม่สนตัวพิมพ์เล็กใหญ่
             const findKey = (searchStrings) => keys.find(k => searchStrings.some(s => String(k).toLowerCase().replace(/\s/g, '').includes(s)));
 
             if (finalCategory === 'Routine' && isMatrix) {
-                // โหมด Matrix: ดักทาง "TASK " และ "Onwer"
                 const taskKey = findKey(['task', 'ชื่องาน', 'jobname']);
                 const ownerKey = findKey(['onwer', 'owner', 'พนักงาน']);
                 
@@ -350,8 +426,6 @@ function processFileContent(workbook, fileName) {
 
                 const rawOwner = ownerKey ? String(row[ownerKey]).trim() : 'ไม่ระบุ';
                 const ownerFormatted = staffDictionary[rawOwner] || rawOwner;
-                
-                // ใช้ชื่อ Sheet หรือชื่อไฟล์เป็นชื่อกลุ่มงาน
                 const jobType = sLower.includes('sheet') ? fileName.replace('.csv','').replace('.xlsx','') : sheetName;
 
                 keys.forEach(k => {
@@ -373,7 +447,6 @@ function processFileContent(workbook, fileName) {
                 });
 
             } else {
-                // โหมด List (Adhoc & Compliant)
                 const taskKey = findKey(['jobname', 'task', 'ชื่องาน']);
                 const ownerKey = findKey(['owner', 'onwer', 'พนักงาน']);
                 const deadlineKey = findKey(['deadline', 'กำหนดส่ง']);
@@ -411,7 +484,7 @@ el('fileUpload').addEventListener('change', async (e) => {
     const files = e.target.files;
     if (!files.length) return;
     
-    showAlert('กำลังอ่านไฟล์และจัดหมวดหมู่อัตโนมัติ...', 'sky', 'fa-spinner fa-spin');
+    showAlert('กำลังนำเข้าไฟล์และซิงค์ขึ้น Cloud...', 'sky', 'fa-spinner fa-spin');
     let newlyParsedTasks = [];
     
     for(let i=0; i<files.length; i++) {
@@ -423,18 +496,15 @@ el('fileUpload').addEventListener('change', async (e) => {
     }
     
     if (newlyParsedTasks.length === 0) {
-        showAlert('นำเข้าไม่สำเร็จ: ไม่พบข้อมูลงาน (ตรวจสอบเว้นวรรคหรือหัวตาราง)', 'rose', 'fa-triangle-exclamation');
+        showAlert('นำเข้าไม่สำเร็จ: ไม่พบข้อมูลงาน', 'rose', 'fa-triangle-exclamation');
         return;
     }
     
-    // รวมของเก่ากับของใหม่
     appState.tasks = [...appState.tasks, ...newlyParsedTasks];
     
-    // ลบตัวซ้ำ (กรณีอัปโหลดไฟล์เดิมซ้ำ)
     const uniqueTasks = [];
     const map = new Map();
     for (const item of appState.tasks) {
-        // ใช้ Key ผสม เพื่อเช็คความซ้ำซ้อน
         const uniqueKey = `${item.taskName}-${item.ownerName}-${item.date}-${item.jobType}`;
         if(!map.has(uniqueKey)){
             map.set(uniqueKey, true);
@@ -443,10 +513,11 @@ el('fileUpload').addEventListener('change', async (e) => {
     }
     appState.tasks = uniqueTasks;
 
-    saveTasks(); 
+    // 🔴 ทันทีที่อัปโหลดเสร็จ ให้ส่งขึ้นคลาวด์เลย 🔴
+    saveTasksToCloud(); 
     updateDropdowns();
     renderUI();
-    showAlert(`นำเข้าสำเร็จ! อ่านข้อมูลเรียบร้อย (รองรับการแก้ไขคำผิด)`, 'emerald', 'fa-check-circle');
+    showAlert(`อัปโหลดและแชร์ให้ทุกคนสำเร็จ!`, 'emerald', 'fa-check-circle');
     e.target.value = ''; 
 });
 
@@ -461,24 +532,6 @@ function updateDropdowns() {
     el('jobTypeSelect').innerHTML = '<option value="all">ทุกกลุ่มงาน</option>' + types.map(t => `<option value="${t}">${t}</option>`).join('');
 }
 
-window.changeTaskStatus = function(taskId, newStatus) {
-    const task = appState.tasks.find(t => t.id === taskId);
-    if (task) { task.status = newStatus; saveTasks(); renderUI(); }
-}
-
-window.toggleAccordion = function(headerElement) {
-    const content = headerElement.nextElementSibling;
-    const icon = headerElement.querySelector('.fa-chevron-down');
-    if (content.classList.contains('hidden')) {
-        content.classList.remove('hidden');
-        icon.style.transform = "rotate(180deg)";
-    } else {
-        content.classList.add('hidden');
-        icon.style.transform = "rotate(0deg)";
-    }
-}
-
-// --- 3. Rendering Charts ---
 function renderCharts(dayTasks) {
     let cDone = 0, cPending = 0, cNotRun = 0;
     const empData = {};
@@ -524,15 +577,12 @@ function renderCharts(dayTasks) {
     });
 }
 
-// --- 4. Render Main UI ---
 function renderUI() {
     const { employee, jobType } = appState.filters;
     const targetDate = appState.selectedDate; 
 
-    // Time Machine Filter: ดึงข้อมูล ณ วันที่เลือก
     let dateFilteredTasks = appState.tasks.filter(t => {
         if(t.category === 'Routine') return t.date === targetDate;
-        
         if(t.category === 'Adhoc' || t.category === 'Compliant') {
             if(!t.date && !t.receiveDate) return true;
             const start = t.receiveDate || t.date;
@@ -565,7 +615,6 @@ function renderUI() {
 
     el('routineDateLabel').innerText = `วันที่: ${targetDate}`;
 
-    // --- Render Routine (จัดกลุ่ม Group A / Group B) ---
     const routineTasks = finalFiltered.filter(t => t.category === 'Routine');
     const rCont = el('routineContainer');
     
@@ -622,7 +671,6 @@ function renderUI() {
         }).join('');
     }
 
-    // --- Helper function for Tables ---
     const renderTableRows = (tasks, emptyMsg) => tasks.length ? tasks.map(t => {
         let textClass = 'text-slate-400', borderClass = 'border-white/10';
         if(t.status === 'done') { textClass = 'text-emerald-400 font-bold'; borderClass = 'border-emerald-500/50'; }
@@ -648,30 +696,9 @@ function renderUI() {
     el('compliantTableBody').innerHTML = renderTableRows(finalFiltered.filter(t => t.category === 'Compliant'), 'ไม่มีเคสร้องเรียน');
 }
 
+// เริ่มต้นโปรแกรม
 init();
-</script>
-<script type="module">
-// Import the functions you need from the SDKs you need
-import { initializeApp } from "firebase/app";
-import { getAnalytics } from "firebase/analytics";
-// TODO: Add SDKs for Firebase products that you want to use
-// https://firebase.google.com/docs/web/setup#available-libraries
-
-// Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
-const firebaseConfig = {
-  apiKey: "AIzaSyBCe24a2jf09xA0B9P9Z7tEL6m2WhhNP3g",
-  authDomain: "dashboard-project-1e251.firebaseapp.com",
-  projectId: "dashboard-project-1e251",
-  storageBucket: "dashboard-project-1e251.firebasestorage.app",
-  messagingSenderId: "667197621003",
-  appId: "1:667197621003:web:7406b7b80913574fe9180e",
-  measurementId: "G-Q3RK3JHE6L"
-};
-
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
 </script>
 </body>
 </html>
+
