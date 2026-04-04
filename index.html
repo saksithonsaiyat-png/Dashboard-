@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Executive Task Dashboard - Real-time Edition</title>
+  <title>Executive Task Dashboard - Enterprise Level</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -52,9 +52,9 @@
             YOUR COMPANY NAME
         </h2>
         <h1 class="text-2xl md:text-3xl font-black text-white tracking-wide flex items-center gap-3">
-            Executive Monitor <span class="text-[10px] bg-emerald-600 px-2 py-1 rounded-full uppercase tracking-widest text-white align-middle animate-pulse"><i class="fa-solid fa-wifi mr-1"></i> Real-time</span>
+            Executive Monitor <span class="text-[10px] bg-purple-600 px-2 py-1 rounded-full uppercase tracking-widest text-white align-middle">Time Machine</span>
         </h1>
-        <p class="text-purple-300/80 text-xs mt-1">อัปเดตข้อมูลอัตโนมัติซิงค์ตรงกับคลาวด์ตลอดเวลา</p>
+        <p class="text-purple-300/80 text-xs mt-1">อัปเดตข้อมูลอัตโนมัติจากไฟล์ Group A/B, Adhoc, Compliant</p>
     </div>
   </div>
   
@@ -64,11 +64,11 @@
       <input id="dateFilter" type="date" class="bg-transparent border-none text-white text-sm focus:ring-0 cursor-pointer font-bold outline-none" />
     </div>
     <label class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer shadow-lg shadow-indigo-900/40 transition-all active:scale-95 border border-indigo-400/30">
-      <i class="fa-solid fa-cloud-arrow-up"></i> อัปโหลดงาน (Excel/CSV)
+      <i class="fa-solid fa-file-excel"></i> นำเข้าไฟล์ลูกค้า (CSV/XLSX)
       <input id="fileUpload" type="file" accept=".xlsx,.xls,.csv" class="hidden" multiple />
     </label>
     <button onclick="hardReset()" class="bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white border border-rose-500/30 hover:border-rose-500 px-4 py-2.5 rounded-xl text-xs font-bold transition-all">
-      <i class="fa-solid fa-trash-can"></i> ล้างข้อมูล
+      <i class="fa-solid fa-trash-can"></i> ล้าง
     </button>
   </div>
 </header>
@@ -203,28 +203,8 @@
   </div>
 </div>
 
-<!-- สคริปต์รวบยอด (ระบบหลัก + Firebase) -->
-<script type="module">
-// --- 1. นำเข้า Firebase SDK สำหรับเบราว์เซอร์ ---
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
-import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
-
-// --- 2. การตั้งค่า Firebase ของคุณ (ถูกต้องแล้ว) ---
-const firebaseConfig = {
-  apiKey: "AIzaSyBCe24a2jf09xA0B9P9Z7tEL6m2WhhNP3g",
-  authDomain: "dashboard-project-1e251.firebaseapp.com",
-  projectId: "dashboard-project-1e251",
-  storageBucket: "dashboard-project-1e251.firebasestorage.app",
-  messagingSenderId: "667197621003",
-  appId: "1:667197621003:web:7406b7b80913574fe9180e",
-  measurementId: "G-Q3RK3JHE6L"
-};
-
-// เริ่มต้นใช้งาน Firebase
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-
-// --- 3. ระบบหลัก (ตัวแปรและตั้งค่า) ---
+<script>
+// --- 1. System Setup ---
 const DB_KEY = 'Executive_Dash_V18_Ultimate'; 
 const appState = { tasks: [], selectedDate: '', filters: { employee: 'all', jobType: 'all' }, staffMap: {} };
 
@@ -235,7 +215,6 @@ Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
 
 const el = id => document.getElementById(id);
 
-// --- 4. ฟังก์ชันหลัก ---
 function init() {
     const todayStr = new Date().toISOString().slice(0, 10);
     appState.selectedDate = todayStr;
@@ -244,36 +223,17 @@ function init() {
     const savedLogo = localStorage.getItem('ExecDash_Logo_Client');
     if(savedLogo) el('companyLogoImg').src = savedLogo;
     const savedName = localStorage.getItem('ExecDash_CompanyName_Client');
-    if(savedName) el('companyNameText').innerText = savedName;
+    if(savedName) {
+        el('companyNameText').innerText = savedName;
+    }
 
-    // โหลดข้อมูลเก่าจากเครื่องก่อน
-    loadTasksLocal();
+    loadTasks();
     updateDropdowns();
     renderUI();
-
-    // 🔴 [สำคัญ] เริ่มดักฟังข้อมูลจากคลาวด์แบบ Real-time 🔴
-    onSnapshot(doc(db, "dashboard", "mainData"), (docSnap) => {
-        if (docSnap.exists()) {
-            const remoteData = docSnap.data();
-            appState.tasks = remoteData.tasks || [];
-            appState.staffMap = remoteData.staffMap || {};
-            
-            // อัปเดตหน้าจอทันทีเมื่อข้อมูลจากคลาวด์เปลี่ยน
-            updateDropdowns();
-            renderUI();
-            
-            console.log("🔥 อัปเดตข้อมูล Real-time สำเร็จ!");
-        } else {
-            // ถ้าคลาวด์ว่างเปล่า (ล้างข้อมูล) แต่ในเครื่องมีข้อมูล ให้โยนขึ้นไป
-            if(appState.tasks.length > 0) saveTasksToCloud();
-        }
-    }, (error) => {
-        console.error("Firebase Sync Error: ", error);
-        showAlert('มีปัญหาการเชื่อมต่อ Real-time', 'rose', 'fa-wifi');
-    });
 }
 
-function loadTasksLocal() {
+function saveTasks() { localStorage.setItem(DB_KEY, JSON.stringify({ tasks: appState.tasks, staffMap: appState.staffMap })); }
+function loadTasks() {
     const stored = localStorage.getItem(DB_KEY);
     if (stored) {
         const parsed = JSON.parse(stored);
@@ -281,57 +241,8 @@ function loadTasksLocal() {
         appState.staffMap = parsed.staffMap || {};
     }
 }
+function hardReset() { if(confirm('ล้างข้อมูลทั้งหมด?')) { localStorage.removeItem(DB_KEY); location.reload(); } }
 
-// 🔴 [สำคัญ] ฟังก์ชันส่งข้อมูลขึ้นคลาวด์เมื่อมีการอัปเดต 🔴
-function saveTasksToCloud() {
-    // 1. เซฟลงเครื่อง
-    localStorage.setItem(DB_KEY, JSON.stringify({ tasks: appState.tasks, staffMap: appState.staffMap }));
-    
-    // 2. เซฟขึ้น Firebase
-    const dataToSync = {
-        tasks: appState.tasks,
-        staffMap: appState.staffMap,
-        lastUpdated: new Date().getTime()
-    };
-    setDoc(doc(db, "dashboard", "mainData"), dataToSync)
-        .catch(err => {
-            console.error("Firebase Save Error:", err);
-            showAlert('ไม่สามารถบันทึกขึ้นคลาวด์ได้', 'rose', 'fa-triangle-exclamation');
-        });
-}
-
-// ผูกฟังก์ชันเข้ากับ window object เพื่อให้ปุ่มใน HTML เรียกใช้งานได้ (เพราะใช้ type="module")
-window.hardReset = function() { 
-    if(confirm('ล้างข้อมูลทั้งหมด ทั้งบนเครื่องและบนระบบคลาวด์?')) { 
-        localStorage.removeItem(DB_KEY); 
-        // ล้างบนคลาวด์ด้วย
-        setDoc(doc(db, "dashboard", "mainData"), { tasks: [], staffMap: {}, lastUpdated: new Date().getTime() });
-        location.reload(); 
-    } 
-};
-
-window.changeTaskStatus = function(taskId, newStatus) {
-    const task = appState.tasks.find(t => t.id === taskId);
-    if (task) { 
-        task.status = newStatus; 
-        saveTasksToCloud(); // เซฟและยิงขึ้นคลาวด์เลย
-        renderUI(); 
-    }
-};
-
-window.toggleAccordion = function(headerElement) {
-    const content = headerElement.nextElementSibling;
-    const icon = headerElement.querySelector('.fa-chevron-down');
-    if (content.classList.contains('hidden')) {
-        content.classList.remove('hidden');
-        icon.style.transform = "rotate(180deg)";
-    } else {
-        content.classList.add('hidden');
-        icon.style.transform = "rotate(0deg)";
-    }
-};
-
-// (ฟังก์ชัน UI อื่นๆ โครงสร้างเดิม)
 el('logoUpload').addEventListener('change', (e) => {
     const f = e.target.files[0];
     if (f) {
@@ -348,6 +259,538 @@ function showAlert(msg, color, icon='fa-info-circle') {
     alert.innerHTML = `<i class="fa-solid ${icon} text-lg"></i> <span>${msg}</span>`;
     alert.classList.remove('hidden');
     setTimeout(() => { alert.classList.add('hidden'); }, 5000);
+}
+
+// --- 2. THE ULTIMATE CLIENT PARSER (แก้เว้นวรรค และคำผิด 100%) ---
+function parseDateKey(k) {
+    if (!k) return null;
+    let strK = String(k).trim();
+    if (strK.match(/^\d{4}-\d{2}-\d{2}$/)) return strK;
+    const num = parseFloat(strK);
+    if (!isNaN(num) && num > 30000 && num < 70000 && !strK.includes('-') && !strK.includes('/')) {
+        const d = new Date(Math.round((num - 25569) * 86400 * 1000));
+        return d.toISOString().slice(0, 10);
+    }
+    return null;
+}
+
+function processFileContent(workbook, fileName) {
+    let allData = [];
+    let staffDictionary = appState.staffMap || {};
+    let companyNameFound = "";
+
+    // Step 1: ค้นหา Master Data ก่อนเพื่อดึงข้อมูลพนักงานและชื่อบริษัท
+    workbook.SheetNames.forEach(sheetName => {
+        const sNameLower = sheetName.toLowerCase();
+        // ถ้าเป็นไฟล์ CSV ที่เซฟแยกมา ชื่อ Sheet จะเป็นชื่อไฟล์
+        if (sNameLower.includes('master') || fileName.toLowerCase().includes('master')) {
+            const rawArray = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { header: 1 });
+            if (rawArray.length > 0) {
+                // ค้นหา Company Name แบบ Array 2D
+                rawArray.forEach((row, rIdx) => {
+                    row.forEach((cell, cIdx) => {
+                        let text = String(cell).trim().toLowerCase();
+                        if(text === 'company name') companyNameFound = String(row[cIdx+1] || '').trim();
+                        
+                        // สร้าง Dictionary ST001 -> ST001 (MR A)
+                        if (rIdx > 0 && String(row[0]).startsWith('ST')) {
+                            let code = String(row[0]).trim();
+                            let name = String(row[1] || '').trim();
+                            if(code) {
+                                let fullName = name ? `${code} (${name})` : code;
+                                staffDictionary[code] = fullName;
+                                if(name) staffDictionary[name] = fullName; 
+                            }
+                        }
+                    });
+                });
+            }
+        }
+    });
+
+    if (companyNameFound) {
+        el('companyNameText').innerText = companyNameFound;
+        localStorage.setItem('ExecDash_CompanyName_Client', companyNameFound);
+    }
+    appState.staffMap = staffDictionary;
+
+    // Step 2: อ่านข้อมูลงาน (Routine, Adhoc, Compliant)
+    workbook.SheetNames.forEach(sheetName => {
+        const sLower = sheetName.toLowerCase();
+        const fLower = fileName.toLowerCase();
+        if (sLower.includes('master') || fLower.includes('master')) return;
+
+        // แยกหมวดหมู่จากชื่อ Sheet หรือ ชื่อไฟล์
+        let finalCategory = 'Adhoc';
+        if (sLower.includes('group') || sLower.includes('routine') || fLower.includes('group')) finalCategory = 'Routine';
+        else if (sLower.includes('compliant') || sLower.includes('ร้องเรียน') || fLower.includes('compliant')) finalCategory = 'Compliant';
+
+        // ใช้ raw: false เพื่ออ่านวันที่มาเป็น String ตรงๆ 
+        const rawRows = XLSX.utils.sheet_to_json(workbook.Sheets[sheetName], { defval: '', raw: false });
+        if (rawRows.length === 0) return;
+
+        // เช็คว่ามีคอลัมน์ที่เป็นวันที่หรือไม่ (เพื่อระบุว่าเป็น Matrix Group A/B)
+        const keysSample = Object.keys(rawRows[0] || {});
+        const isMatrix = keysSample.some(k => parseDateKey(k));
+
+        rawRows.forEach(row => {
+            const keys = Object.keys(row);
+            
+            // ฟังก์ชันค้นหาคำแบบเทพ ลบเว้นวรรคและไม่สนตัวพิมพ์เล็กใหญ่
+            const findKey = (searchStrings) => keys.find(k => searchStrings.some(s => String(k).toLowerCase().replace(/\s/g, '').includes(s)));
+
+            if (finalCategory === 'Routine' && isMatrix) {
+                // โหมด Matrix: ดักทาง "TASK " และ "Onwer"
+                const taskKey = findKey(['task', 'ชื่องาน', 'jobname']);
+                const ownerKey = findKey(['onwer', 'owner', 'พนักงาน']);
+                
+                if (!taskKey) return;
+                const taskName = String(row[taskKey]).trim();
+                if (!taskName) return;
+
+                const rawOwner = ownerKey ? String(row[ownerKey]).trim() : 'ไม่ระบุ';
+                const ownerFormatted = staffDictionary[rawOwner] || rawOwner;
+                
+                // ใช้ชื่อ Sheet หรือชื่อไฟล์เป็นชื่อกลุ่มงาน
+                const jobType = sLower.includes('sheet') ? fileName.replace('.csv','').replace('.xlsx','') : sheetName;
+
+                keys.forEach(k => {
+                    const pDate = parseDateKey(k);
+                    if (pDate) {
+                        const val = String(row[k]).trim().toUpperCase();
+                        if (val) {
+                            let status = 'not run';
+                            if (val === 'S' || val === 'SUCCESS') status = 'done';
+                            else if (val === 'P' || val === 'PENDING') status = 'pending';
+                            else if (val === 'N') status = 'not run';
+
+                            allData.push({
+                                id: `R${Date.now()}${Math.random().toString(36).substr(2,5)}`,
+                                category: 'Routine', jobType: jobType, taskName: taskName, ownerName: ownerFormatted, date: pDate, status: status
+                            });
+                        }
+                    }
+                });
+
+            } else {
+                // โหมด List (Adhoc & Compliant)
+                const taskKey = findKey(['jobname', 'task', 'ชื่องาน']);
+                const ownerKey = findKey(['owner', 'onwer', 'พนักงาน']);
+                const deadlineKey = findKey(['deadline', 'กำหนดส่ง']);
+                const receiveKey = findKey(['receive', 'วันที่รับ']);
+                const statusKey = findKey(['status', 'สถานะ']);
+
+                if (!taskKey) return;
+                const taskName = String(row[taskKey]).trim();
+                if (!taskName) return;
+
+                const rawOwner = ownerKey ? String(row[ownerKey]).trim() : 'ไม่ระบุ';
+                const ownerFormatted = staffDictionary[rawOwner] || rawOwner;
+                const jobType = sLower.includes('sheet') ? fileName.replace('.csv','').replace('.xlsx','') : sheetName;
+
+                let parsedDeadline = deadlineKey ? parseDateKey(row[deadlineKey]) : '';
+                let parsedReceive = receiveKey ? parseDateKey(row[receiveKey]) : parsedDeadline;
+
+                const statusVal = statusKey ? String(row[statusKey]).toUpperCase() : '';
+                let status = 'not run';
+                if (statusVal.includes('SUCCESS') || statusVal === 'S') status = 'done';
+                else if (statusVal.includes('PENDING') || statusVal === 'P' || statusVal.includes('OVERDUE')) status = 'pending';
+
+                allData.push({
+                    id: `A${Date.now()}${Math.random().toString(36).substr(2,5)}`,
+                    category: finalCategory, jobType: jobType, taskName: taskName, ownerName: ownerFormatted, 
+                    date: parsedDeadline, receiveDate: parsedReceive, status: status
+                });
+            }
+        });
+    });
+    return allData;
+}
+
+el('fileUpload').addEventListener('change', async (e) => {
+    const files = e.target.files;
+    if (!files.length) return;
+    
+    showAlert('กำลังอ่านไฟล์และจัดหมวดหมู่อัตโนมัติ...', 'sky', 'fa-spinner fa-spin');
+    let newlyParsedTasks = [];
+    
+    for(let i=0; i<files.length; i++) {
+        const file = files[i];
+        const data = await file.arrayBuffer();
+        const wb = XLSX.read(data, { type: 'array' });
+        const tasks = processFileContent(wb, file.name);
+        newlyParsedTasks = [...newlyParsedTasks, ...tasks];
+    }
+    
+    if (newlyParsedTasks.length === 0) {
+        showAlert('นำเข้าไม่สำเร็จ: ไม่พบข้อมูลงาน (ตรวจสอบเว้นวรรคหรือหัวตาราง)', 'rose', 'fa-triangle-exclamation');
+        return;
+    }
+    
+    // รวมของเก่ากับของใหม่
+    appState.tasks = [...appState.tasks, ...newlyParsedTasks];
+    
+    // ลบตัวซ้ำ (กรณีอัปโหลดไฟล์เดิมซ้ำ)
+    const uniqueTasks = [];
+    const map = new Map();
+    for (const item of appState.tasks) {
+        // ใช้ Key ผสม เพื่อเช็คความซ้ำซ้อน
+        const uniqueKey = `${item.taskName}-${item.ownerName}-${item.date}-${item.jobType}`;
+        if(!map.has(uniqueKey)){
+            map.set(uniqueKey, true);
+            uniqueTasks.push(item);
+        }
+    }
+    appState.tasks = uniqueTasks;
+
+    saveTasks(); 
+    updateDropdowns();
+    renderUI();
+    showAlert(`นำเข้าสำเร็จ! อ่านข้อมูลเรียบร้อย (รองรับการแก้ไขคำผิด)`, 'emerald', 'fa-check-circle');
+    e.target.value = ''; 
+});
+
+el('dateFilter').addEventListener('change', (e) => { if (e.target.value) { appState.selectedDate = e.target.value; renderUI(); } });
+el('employeeSelect').addEventListener('change', (e) => { appState.filters.employee = e.target.value; renderUI(); });
+el('jobTypeSelect').addEventListener('change', (e) => { appState.filters.jobType = e.target.value; renderUI(); });
+
+function updateDropdowns() {
+    const emps = [...new Set(appState.tasks.map(t => t.ownerName))].sort();
+    el('employeeSelect').innerHTML = '<option value="all">พนักงานทุกคน</option>' + emps.map(name => `<option value="${name}">${name}</option>`).join('');
+    const types = [...new Set(appState.tasks.map(t => t.jobType))].sort();
+    el('jobTypeSelect').innerHTML = '<option value="all">ทุกกลุ่มงาน</option>' + types.map(t => `<option value="${t}">${t}</option>`).join('');
+}
+
+window.changeTaskStatus = function(taskId, newStatus) {
+    const task = appState.tasks.find(t => t.id === taskId);
+    if (task) { task.status = newStatus; saveTasks(); renderUI(); }
+}
+
+window.toggleAccordion = function(headerElement) {
+    const content = headerElement.nextElementSibling;
+    const icon = headerElement.querySelector('.fa-chevron-down');
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        icon.style.transform = "rotate(180deg)";
+    } else {
+        content.classList.add('hidden');
+        icon.style.transform = "rotate(0deg)";
+    }
+}
+
+// --- 3. Rendering Charts ---
+function renderCharts(dayTasks) {
+    let cDone = 0, cPending = 0, cNotRun = 0;
+    const empData = {};
+
+    dayTasks.forEach(t => {
+        if(t.status === 'done') cDone++;
+        else if(t.status === 'pending') cPending++;
+        else cNotRun++;
+
+        if (!empData[t.ownerName]) empData[t.ownerName] = { done: 0, pending: 0, notrun: 0 };
+        if (t.status === 'done') empData[t.ownerName].done++;
+        else if (t.status === 'pending') empData[t.ownerName].pending++;
+        else empData[t.ownerName].notrun++;
+    });
+
+    if (chartCompany) chartCompany.destroy();
+    chartCompany = new Chart(el('companyChart'), {
+        type: 'doughnut',
+        data: {
+            labels: ['Success', 'Pending', 'Not Run'],
+            datasets: [{ data: [cDone, cPending, cNotRun], backgroundColor: ['#10b981', '#f59e0b', '#64748b'], borderWidth: 0 }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, cutout: '75%', plugins: { legend: { position: 'right', labels: { color: '#cbd5e1', font:{size:10} } } } }
+    });
+
+    const empNames = Object.keys(empData);
+    if (chartEmployee) chartEmployee.destroy();
+    chartEmployee = new Chart(el('employeeChart'), {
+        type: 'bar',
+        data: {
+            labels: empNames.length ? empNames : ['ไม่มีข้อมูล'],
+            datasets: [
+                { label: 'S', data: empNames.map(n => empData[n].done), backgroundColor: '#10b981', borderRadius: 2 },
+                { label: 'P', data: empNames.map(n => empData[n].pending), backgroundColor: '#f59e0b', borderRadius: 2 },
+                { label: 'N', data: empNames.map(n => empData[n].notrun), backgroundColor: '#64748b', borderRadius: 2 }
+            ]
+        },
+        options: {
+            responsive: true, maintainAspectRatio: false,
+            scales: { x: { stacked: true, grid: { display: false }, ticks:{font:{size:10}} }, y: { stacked: true, beginAtZero: true, grid: { color: 'rgba(255,255,255,0.05)' } } },
+            plugins: { legend: { position: 'top', align: 'end', labels:{boxWidth:10, font:{size:10}} } }
+        }
+    });
+}
+
+// --- 4. Render Main UI ---
+function renderUI() {
+    const { employee, jobType } = appState.filters;
+    const targetDate = appState.selectedDate; 
+
+    // Time Machine Filter: ดึงข้อมูล ณ วันที่เลือก
+    let dateFilteredTasks = appState.tasks.filter(t => {
+        if(t.category === 'Routine') return t.date === targetDate;
+        
+        if(t.category === 'Adhoc' || t.category === 'Compliant') {
+            if(!t.date && !t.receiveDate) return true;
+            const start = t.receiveDate || t.date;
+            return start <= targetDate && (t.status !== 'done' || t.date >= targetDate);
+        }
+        return true;
+    });
+
+    const finalFiltered = dateFilteredTasks.filter(t => 
+        (employee === 'all' || t.ownerName === employee) && 
+        (jobType === 'all' || t.jobType === jobType)
+    );
+
+    renderCharts(finalFiltered);
+
+    let countS = 0, countP = 0, countN = 0;
+    finalFiltered.forEach(t => {
+        if(t.status === 'done') countS++;
+        else if(t.status === 'pending') countP++;
+        else countN++;
+    });
+
+    el('successStat').innerText = countS;
+    el('pendingStat').innerText = countP;
+    el('notrunStat').innerText = countN;
+    
+    const totalRoutine = finalFiltered.filter(t => t.category === 'Routine').length;
+    const doneRoutine = finalFiltered.filter(t => t.category === 'Routine' && t.status === 'done').length;
+    el('percentStat').innerText = totalRoutine ? `${Math.round((doneRoutine/totalRoutine)*100)}%` : '0%';
+
+    el('routineDateLabel').innerText = `วันที่: ${targetDate}`;
+
+    // --- Render Routine (จัดกลุ่ม Group A / Group B) ---
+    const routineTasks = finalFiltered.filter(t => t.category === 'Routine');
+    const rCont = el('routineContainer');
+    
+    if(routineTasks.length === 0) {
+        rCont.innerHTML = `<div class="h-full flex flex-col items-center justify-center text-slate-500 opacity-60 py-20"><i class="fa-regular fa-folder-open text-4xl mb-3"></i><p class="text-sm font-bold uppercase">ไม่มีงาน Routine สำหรับวันนี้</p></div>`;
+    } else {
+        const groupedRoutine = {};
+        routineTasks.forEach(t => { if(!groupedRoutine[t.jobType]) groupedRoutine[t.jobType] = []; groupedRoutine[t.jobType].push(t); });
+
+        rCont.innerHTML = Object.keys(groupedRoutine).map(jobName => {
+            const tasksInJob = groupedRoutine[jobName];
+            const doneInJob = tasksInJob.filter(t => t.status === 'done').length;
+            const progressPct = Math.round((doneInJob / tasksInJob.length) * 100);
+            
+            return `
+            <div class="bg-black/20 rounded-xl border border-emerald-500/20 overflow-hidden mb-4 shadow-lg">
+                <div class="p-4 bg-emerald-900/20 cursor-pointer flex items-center justify-between hover:bg-emerald-900/40 transition-colors" onclick="toggleAccordion(this)">
+                    <div class="flex-1">
+                        <h3 class="text-sm font-bold text-emerald-400 flex items-center gap-2 uppercase tracking-widest"><i class="fa-solid fa-users-gear"></i> ${jobName}</h3>
+                        <div class="w-full bg-black/50 h-2 rounded-full mt-3 overflow-hidden border border-white/5">
+                            <div class="h-full bg-gradient-to-r from-emerald-600 to-emerald-400 transition-all" style="width: ${progressPct}%"></div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 ml-6">
+                        <div class="text-right">
+                            <span class="text-sm font-black text-emerald-400 block">${progressPct}%</span>
+                            <span class="text-[10px] text-slate-400 font-mono">${doneInJob}/${tasksInJob.length} Task</span>
+                        </div>
+                        <i class="fa-solid fa-chevron-down text-slate-400 transition-transform duration-300 transform rotate-180"></i>
+                    </div>
+                </div>
+                <div class="transition-all duration-300 ease-in-out bg-black/10">
+                    <div class="p-3 space-y-1 border-t border-white/5">
+                        ${tasksInJob.map(t => `
+                            <div class="flex items-center justify-between p-2 rounded-lg hover:bg-white/5 transition-colors border border-transparent hover:border-white/5 group">
+                                <div class="w-1/2 pr-2">
+                                    <p class="text-xs font-semibold ${t.status === 'done' ? 'line-through text-slate-500' : 'text-slate-200'} truncate" title="${t.taskName}">${t.taskName}</p>
+                                </div>
+                                <div class="w-1/4 px-2">
+                                    <span class="text-[10px] text-slate-400 bg-black/40 px-2 py-1 rounded truncate block text-center border border-white/5" title="${t.ownerName}">${t.ownerName}</span>
+                                </div>
+                                <div class="w-1/4 pl-2 flex justify-end">
+                                    <select onchange="changeTaskStatus('${t.id}', this.value)" class="status-select bg-black/60 border border-white/10 text-xs rounded py-1 pl-3 pr-6 outline-none cursor-pointer ${t.status === 'done' ? 'text-emerald-400 font-bold border-emerald-500/50' : (t.status === 'pending' ? 'text-amber-400 font-bold border-amber-500/50' : 'text-slate-400')}">
+                                        <option value="not run" ${t.status === 'not run' ? 'selected' : ''}>N (Not run)</option>
+                                        <option value="pending" ${t.status === 'pending' ? 'selected' : ''}>P (Pending)</option>
+                                        <option value="done" ${t.status === 'done' ? 'selected' : ''}>S (Success)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        `).join('')}
+                    </div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+
+    // --- Helper function for Tables ---
+    const renderTableRows = (tasks, emptyMsg) => tasks.length ? tasks.map(t => {
+        let textClass = 'text-slate-400', borderClass = 'border-white/10';
+        if(t.status === 'done') { textClass = 'text-emerald-400 font-bold'; borderClass = 'border-emerald-500/50'; }
+        else if(t.status === 'pending') { textClass = 'text-amber-400 font-bold'; borderClass = 'border-amber-500/50'; }
+
+        return `
+        <tr class="hover:bg-white/5 transition-colors border-b border-white/5">
+            <td class="px-4 py-3"><div class="text-xs font-semibold ${t.status === 'done' ? 'text-slate-500 line-through' : 'text-slate-200'} truncate w-40" title="${t.taskName}">${t.taskName}</div></td>
+            <td class="px-4 py-3 text-[10px] text-purple-300 font-medium truncate w-24" title="${t.ownerName}">${t.ownerName}</td>
+            <td class="px-4 py-3 text-[10px] text-slate-400 uppercase truncate w-20 text-center">${t.jobType}</td>
+            <td class="px-4 py-3 text-[10px] text-slate-400 font-mono text-center">${t.date || '-'}</td>
+            <td class="px-4 py-3 text-center">
+                <select onchange="changeTaskStatus('${t.id}', this.value)" class="status-select bg-black/40 border ${borderClass} text-[10px] rounded py-1 pl-2 pr-5 outline-none cursor-pointer ${textClass}">
+                    <option value="not run" ${t.status === 'not run' ? 'selected' : ''}>N</option>
+                    <option value="pending" ${t.status === 'pending' ? 'selected' : ''}>P</option>
+                    <option value="done" ${t.status === 'done' ? 'selected' : ''}>S</option>
+                </select>
+            </td>
+        </tr>
+    `}).join('') : `<tr><td colspan="5" class="py-10 text-center text-slate-500 opacity-60"><p class="text-xs font-bold uppercase">${emptyMsg}</p></td></tr>`;
+
+    el('adhocTableBody').innerHTML = renderTableRows(finalFiltered.filter(t => t.category === 'Adhoc'), 'ไม่มีงาน Adhoc/Project');
+    el('compliantTableBody').innerHTML = renderTableRows(finalFiltered.filter(t => t.category === 'Compliant'), 'ไม่มีเคสร้องเรียน');
+}
+
+init();
+</script>
+<!-- สคริปต์รวบยอด (ระบบหลัก + Firebase) -->
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
+import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyBCe24a2jf09xA0B9P9Z7tEL6m2WhhNP3g",
+  authDomain: "dashboard-project-1e251.firebaseapp.com",
+  projectId: "dashboard-project-1e251",
+  storageBucket: "dashboard-project-1e251.firebasestorage.app",
+  messagingSenderId: "667197621003",
+  appId: "1:667197621003:web:7406b7b80913574fe9180e",
+  measurementId: "G-Q3RK3JHE6L"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+const DB_KEY = 'Executive_Dash_V18_Ultimate'; 
+const appState = { tasks: [], selectedDate: '', filters: { employee: 'all', jobType: 'all' }, staffMap: {} };
+
+let chartCompany = null;
+let chartEmployee = null;
+Chart.defaults.color = '#94a3b8';
+Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
+
+const el = id => document.getElementById(id);
+
+function init() {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    appState.selectedDate = todayStr;
+    el('dateFilter').value = todayStr;
+
+    const savedLogo = localStorage.getItem('ExecDash_Logo_Client');
+    if(savedLogo) el('companyLogoImg').src = savedLogo;
+    const savedName = localStorage.getItem('ExecDash_CompanyName_Client');
+    if(savedName) el('companyNameText').innerText = savedName;
+
+    loadTasksLocal();
+    updateDropdowns();
+    renderUI();
+
+    // เริ่มดักฟังข้อมูลจากคลาวด์แบบ Real-time
+    onSnapshot(doc(db, "dashboard", "mainData"), (docSnap) => {
+        if (docSnap.exists()) {
+            const remoteData = docSnap.data();
+            appState.tasks = remoteData.tasks || [];
+            appState.staffMap = remoteData.staffMap || {};
+            
+            updateDropdowns();
+            renderUI();
+            
+            // แจ้งเตือนเมื่อไอแพด/คอม ได้รับข้อมูลใหม่
+            showAlert('ข้อมูลอัปเดตจาก Cloud ล่าสุดแล้ว', 'sky', 'fa-cloud-arrow-down');
+        }
+    }, (error) => {
+        showAlert('เชื่อมต่อคลาวด์ล้มเหลว: ' + error.message, 'rose', 'fa-wifi');
+    });
+}
+
+function loadTasksLocal() {
+    const stored = localStorage.getItem(DB_KEY);
+    if (stored) {
+        const parsed = JSON.parse(stored);
+        appState.tasks = parsed.tasks || [];
+        appState.staffMap = parsed.staffMap || {};
+    }
+}
+
+// 🔴 [ส่วนที่แก้ใหม่] เพิ่มการแจ้งเตือนตอนส่งข้อมูล 🔴
+function saveTasksToCloud() {
+    localStorage.setItem(DB_KEY, JSON.stringify({ tasks: appState.tasks, staffMap: appState.staffMap }));
+    
+    // แจ้งว่ากำลังส่งข้อมูล
+    showAlert('กำลังบันทึกข้อมูลขึ้น Cloud...', 'amber', 'fa-spinner fa-spin');
+
+    const dataToSync = {
+        tasks: appState.tasks,
+        staffMap: appState.staffMap,
+        lastUpdated: new Date().getTime()
+    };
+    
+    // โยนขึ้น Firebase พร้อมตรวจเช็คว่าผ่านหรือไม่
+    setDoc(doc(db, "dashboard", "mainData"), dataToSync)
+        .then(() => {
+            // ถ้าสำเร็จ ให้ขึ้นสีเขียว
+            showAlert('บันทึกขึ้น Cloud สำเร็จ! ไอแพดจะเห็นข้อมูลนี้แล้ว', 'emerald', 'fa-cloud-arrow-up');
+        })
+        .catch(err => {
+            // ถ้าพัง (เช่น ข้อมูลใหญ่ไป) ให้ขึ้นสีแดงพร้อมบอกสาเหตุ
+            console.error("Firebase Error: ", err);
+            showAlert('บันทึกล้มเหลว (ข้อมูลอาจใหญ่เกิน 1MB): ' + err.message, 'rose', 'fa-triangle-exclamation');
+        });
+}
+
+window.hardReset = function() { 
+    if(confirm('ล้างข้อมูลทั้งหมด ทั้งบนเครื่องและบนระบบคลาวด์?')) { 
+        localStorage.removeItem(DB_KEY); 
+        setDoc(doc(db, "dashboard", "mainData"), { tasks: [], staffMap: {}, lastUpdated: new Date().getTime() });
+        location.reload(); 
+    } 
+};
+
+window.changeTaskStatus = function(taskId, newStatus) {
+    const task = appState.tasks.find(t => t.id === taskId);
+    if (task) { 
+        task.status = newStatus; 
+        saveTasksToCloud(); 
+        renderUI(); 
+    }
+};
+
+window.toggleAccordion = function(headerElement) {
+    const content = headerElement.nextElementSibling;
+    const icon = headerElement.querySelector('.fa-chevron-down');
+    if (content.classList.contains('hidden')) {
+        content.classList.remove('hidden');
+        icon.style.transform = "rotate(180deg)";
+    } else {
+        content.classList.add('hidden');
+        icon.style.transform = "rotate(0deg)";
+    }
+};
+
+el('logoUpload').addEventListener('change', (e) => {
+    const f = e.target.files[0];
+    if (f) {
+        const r = new FileReader();
+        r.onload = (evt) => { el('companyLogoImg').src = evt.target.result; localStorage.setItem('ExecDash_Logo_Client', evt.target.result); };
+        r.readAsDataURL(f);
+    }
+});
+el('companyNameText').addEventListener('blur', (e) => { localStorage.setItem('ExecDash_CompanyName_Client', e.target.innerText); });
+
+function showAlert(msg, color, icon='fa-info-circle') {
+    const alert = el('statusAlert');
+    alert.className = `mb-6 p-4 rounded-xl text-sm font-bold flex items-center gap-3 bg-${color}-500/20 text-${color}-300 border border-${color}-500/30 shadow-lg`;
+    alert.innerHTML = `<i class="fa-solid ${icon} text-lg"></i> <span>${msg}</span>`;
+    alert.classList.remove('hidden');
+    // เพิ่มเวลาโชว์ให้อ่านทันเป็น 6 วินาที
+    setTimeout(() => { alert.classList.add('hidden'); }, 6000);
 }
 
 function parseDateKey(k) {
@@ -484,7 +927,6 @@ el('fileUpload').addEventListener('change', async (e) => {
     const files = e.target.files;
     if (!files.length) return;
     
-    showAlert('กำลังนำเข้าไฟล์และซิงค์ขึ้น Cloud...', 'sky', 'fa-spinner fa-spin');
     let newlyParsedTasks = [];
     
     for(let i=0; i<files.length; i++) {
@@ -513,11 +955,11 @@ el('fileUpload').addEventListener('change', async (e) => {
     }
     appState.tasks = uniqueTasks;
 
-    // 🔴 ทันทีที่อัปโหลดเสร็จ ให้ส่งขึ้นคลาวด์เลย 🔴
-    saveTasksToCloud(); 
     updateDropdowns();
     renderUI();
-    showAlert(`อัปโหลดและแชร์ให้ทุกคนสำเร็จ!`, 'emerald', 'fa-check-circle');
+    
+    // 🔴 สั่งบันทึกขึ้น Cloud ทันที 🔴
+    saveTasksToCloud(); 
     e.target.value = ''; 
 });
 
@@ -696,9 +1138,8 @@ function renderUI() {
     el('compliantTableBody').innerHTML = renderTableRows(finalFiltered.filter(t => t.category === 'Compliant'), 'ไม่มีเคสร้องเรียน');
 }
 
-// เริ่มต้นโปรแกรม
 init();
 </script>
+
 </body>
 </html>
-
