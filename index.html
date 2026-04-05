@@ -3,6 +3,11 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <!-- เพิ่ม meta ป้องกันการจำ Cache ของเบราว์เซอร์ (แก้ปัญหา iPad ไม่อัปเดต) -->
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  
   <title>Executive Task Dashboard - Real-time Edition</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -52,7 +57,7 @@
             YOUR COMPANY NAME
         </h2>
         <h1 class="text-2xl md:text-3xl font-black text-white tracking-wide flex items-center gap-3">
-            Executive Monitor <span class="text-[10px] bg-emerald-600 px-2 py-1 rounded-full uppercase tracking-widest text-white align-middle animate-pulse"><i class="fa-solid fa-wifi mr-1"></i> Real-time</span>
+            Executive Monitor <span class="text-[10px] bg-emerald-600 px-2 py-1 rounded-full uppercase tracking-widest text-white align-middle animate-pulse"><i class="fa-solid fa-wifi mr-1"></i> Real-time Active</span>
         </h1>
         <p class="text-purple-300/80 text-xs mt-1">อัปเดตข้อมูลอัตโนมัติซิงค์ตรงกับคลาวด์ตลอดเวลา</p>
     </div>
@@ -64,7 +69,7 @@
       <input id="dateFilter" type="date" class="bg-transparent border-none text-white text-sm focus:ring-0 cursor-pointer font-bold outline-none" />
     </div>
     <label class="bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-2.5 rounded-xl text-sm font-bold flex items-center gap-2 cursor-pointer shadow-lg shadow-indigo-900/40 transition-all active:scale-95 border border-indigo-400/30">
-      <i class="fa-solid fa-cloud-arrow-up"></i> อัปโหลดงาน (Excel/CSV)
+      <i class="fa-solid fa-cloud-arrow-up"></i> นำเข้าไฟล์ (Excel/CSV)
       <input id="fileUpload" type="file" accept=".xlsx,.xls,.csv" class="hidden" multiple />
     </label>
     <button onclick="hardReset()" class="bg-rose-500/10 text-rose-400 hover:bg-rose-500 hover:text-white border border-rose-500/30 hover:border-rose-500 px-4 py-2.5 rounded-xl text-xs font-bold transition-all">
@@ -203,11 +208,13 @@
   </div>
 </div>
 
-<!-- สคริปต์รวบยอด (ระบบหลัก + Firebase แจ้งเตือนข้อผิดพลาด) -->
+<!-- สคริปต์รวบยอดทั้งหมด -->
 <script type="module">
+// --- 1. การเชื่อมต่อ Firebase ---
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-app.js";
 import { getFirestore, doc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore.js";
 
+// ใส่ข้อมูล Config ของคุณแบบเป๊ะๆ
 const firebaseConfig = {
   apiKey: "AIzaSyBCe24a2jf09xA0B9P9Z7tEL6m2WhhNP3g",
   authDomain: "dashboard-project-1e251.firebaseapp.com",
@@ -221,6 +228,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
+// --- 2. ตัวแปรของระบบ ---
 const DB_KEY = 'Executive_Dash_V18_Ultimate'; 
 const appState = { tasks: [], selectedDate: '', filters: { employee: 'all', jobType: 'all' }, staffMap: {} };
 
@@ -230,9 +238,9 @@ Chart.defaults.color = '#94a3b8';
 Chart.defaults.font.family = "'Segoe UI', Tahoma, Geneva, Verdana, sans-serif";
 
 const el = id => document.getElementById(id);
+let isInitialLoad = true; 
 
-let isInitialLoad = true; // ป้องกันไม่ให้แจ้งเตือนตอนโหลดหน้าครั้งแรก
-
+// --- 3. ฟังก์ชันเริ่มต้นระบบ ---
 function init() {
     const todayStr = new Date().toISOString().slice(0, 10);
     appState.selectedDate = todayStr;
@@ -243,11 +251,7 @@ function init() {
     const savedName = localStorage.getItem('ExecDash_CompanyName_Client');
     if(savedName) el('companyNameText').innerText = savedName;
 
-    loadTasksLocal();
-    updateDropdowns();
-    renderUI();
-
-    // ดักฟังข้อมูลจากคลาวด์แบบ Real-time
+    // โหลดข้อมูลจากคลาวด์แบบ Real-time ทันทีที่เปิดเว็บ
     onSnapshot(doc(db, "dashboard", "mainData"), (docSnap) => {
         if (docSnap.exists()) {
             const remoteData = docSnap.data();
@@ -257,64 +261,47 @@ function init() {
             updateDropdowns();
             renderUI();
             
-            // แจ้งเตือนเมื่อมีการเปลี่ยนแปลงจากเครื่องอื่น
             if (!isInitialLoad) {
-                showAlert('ข้อมูลถูกอัปเดตจากผู้ใช้งานอื่นแบบ Real-time', 'sky', 'fa-cloud-arrow-down');
+                showAlert('ข้อมูลถูกอัปเดตจากอุปกรณ์อื่นแบบ Real-time แล้ว', 'sky', 'fa-cloud-arrow-down');
             }
             isInitialLoad = false;
         } else {
-            // ถ้าบน Cloud ว่างเปล่า และเครื่องเรามีข้อมูล ให้โยนขึ้นไป
-            if(appState.tasks.length > 0) saveTasksToCloud(false);
+            console.log("ยังไม่มีข้อมูลบน Cloud");
             isInitialLoad = false;
         }
     }, (error) => {
         console.error("Firebase Sync Error: ", error);
-        showAlert('เชื่อมต่อคลาวด์ล้มเหลว: ' + error.message, 'rose', 'fa-wifi');
+        showAlert('เชื่อมต่อฐานข้อมูลล้มเหลว: ' + error.message, 'rose', 'fa-wifi');
     });
 }
 
-function loadTasksLocal() {
-    const stored = localStorage.getItem(DB_KEY);
-    if (stored) {
-        const parsed = JSON.parse(stored);
-        appState.tasks = parsed.tasks || [];
-        appState.staffMap = parsed.staffMap || {};
-    }
-}
-
-// ฟังก์ชันส่งข้อมูลขึ้นคลาวด์ พร้อมแจ้งเตือนถ้าเกิดปัญหา
+// --- 4. ฟังก์ชันส่งข้อมูลขึ้นคลาวด์ (สำคัญมาก) ---
 function saveTasksToCloud(showProgress = true) {
-    // 1. เซฟลงเครื่อง
-    localStorage.setItem(DB_KEY, JSON.stringify({ tasks: appState.tasks, staffMap: appState.staffMap }));
-    
-    // 2. จัดเตรียมข้อมูลเซฟขึ้น Firebase
+    if (showProgress) showAlert('กำลังบันทึกข้อมูลขึ้นระบบ Cloud...', 'amber', 'fa-spinner fa-spin');
+
     const dataToSync = {
         tasks: appState.tasks,
         staffMap: appState.staffMap,
         lastUpdated: new Date().getTime()
     };
 
-    if (showProgress) showAlert('กำลังบันทึกข้อมูลขึ้นระบบ Cloud...', 'amber', 'fa-spinner fa-spin');
-
     setDoc(doc(db, "dashboard", "mainData"), dataToSync)
         .then(() => {
-            if (showProgress) showAlert('บันทึกข้อมูลขึ้น Cloud สำเร็จ! ผู้ใช้อื่นจะเห็นอัปเดตทันที', 'emerald', 'fa-cloud-arrow-up');
+            if (showProgress) showAlert('บันทึกข้อมูลสำเร็จ! ทุกหน้าจออัปเดตตรงกันแล้ว', 'emerald', 'fa-cloud-arrow-up');
         })
         .catch(err => {
             console.error("Firebase Save Error:", err);
-            // แจ้งเตือน Error ชัดๆ ว่าล้มเหลวเพราะอะไร
             let errorMsg = 'เกิดข้อผิดพลาดในการบันทึก: ' + err.message;
             if(err.message.includes("exceeds the maximum")) {
-                errorMsg = "ไม่สามารถอัปโหลดได้ เนื่องจากข้อมูลเยอะเกินไป (ไฟล์ใหญ่เกิน 1MB)";
+                errorMsg = "ไฟล์ใหญ่เกินไป (เกิน 1MB) กรุณาแยกไฟล์อัปโหลด";
             }
             showAlert(errorMsg, 'rose', 'fa-triangle-exclamation');
         });
 }
 
-// ผูกฟังก์ชันเข้ากับ window เพื่อให้ HTML เรียกใช้งานได้
+// ผูกเข้ากับระบบ HTML
 window.hardReset = function() { 
-    if(confirm('ล้างข้อมูลทั้งหมด ทั้งบนเครื่องและบนระบบคลาวด์?')) { 
-        localStorage.removeItem(DB_KEY); 
+    if(confirm('คำเตือน: นี่คือการล้างข้อมูลของ "ทุกคน" บนระบบคลาวด์ ยืนยันหรือไม่?')) { 
         setDoc(doc(db, "dashboard", "mainData"), { tasks: [], staffMap: {}, lastUpdated: new Date().getTime() });
         location.reload(); 
     } 
@@ -324,7 +311,7 @@ window.changeTaskStatus = function(taskId, newStatus) {
     const task = appState.tasks.find(t => t.id === taskId);
     if (task) { 
         task.status = newStatus; 
-        saveTasksToCloud(); 
+        saveTasksToCloud(false); // ซ่อน Alert ตอนเปลี่ยนสถานะจะได้ไม่รำคาญตา
         renderUI(); 
     }
 };
@@ -356,9 +343,7 @@ function showAlert(msg, color, icon='fa-info-circle') {
     alert.className = `mb-6 p-4 rounded-xl text-sm font-bold flex items-center justify-center gap-3 bg-${color}-500/90 text-white border border-${color}-400/50 shadow-2xl z-50 fixed top-5 left-1/2 transform -translate-x-1/2 w-11/12 max-w-lg backdrop-blur-md transition-all duration-300`;
     alert.innerHTML = `<i class="fa-solid ${icon} text-xl"></i> <span>${msg}</span>`;
     alert.classList.remove('hidden');
-    
-    // ตั้งเวลาให้แสดงนานขึ้น 6 วินาที จะได้อ่านทัน
-    setTimeout(() => { alert.classList.add('hidden'); }, 6000);
+    setTimeout(() => { alert.classList.add('hidden'); }, 5000);
 }
 
 function parseDateKey(k) {
@@ -507,7 +492,7 @@ el('fileUpload').addEventListener('change', async (e) => {
     }
     
     if (newlyParsedTasks.length === 0) {
-        showAlert('นำเข้าไม่สำเร็จ: ไม่พบข้อมูลงาน (ตรวจสอบหัวตาราง)', 'rose', 'fa-triangle-exclamation');
+        showAlert('นำเข้าไม่สำเร็จ: ไม่พบข้อมูลงาน', 'rose', 'fa-triangle-exclamation');
         return;
     }
     
@@ -528,7 +513,7 @@ el('fileUpload').addEventListener('change', async (e) => {
     renderUI();
     
     // อัปโหลดไฟล์เสร็จ สั่งบันทึกขึ้น Cloud เลย
-    saveTasksToCloud(); 
+    saveTasksToCloud(true); 
     e.target.value = ''; 
 });
 
@@ -707,7 +692,6 @@ function renderUI() {
     el('compliantTableBody').innerHTML = renderTableRows(finalFiltered.filter(t => t.category === 'Compliant'), 'ไม่มีเคสร้องเรียน');
 }
 
-// เริ่มการทำงานของระบบ
 init();
 </script>
 </body>
